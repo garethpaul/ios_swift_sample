@@ -12,6 +12,7 @@
 		FD977B7F193E62FD00803F2C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FD977B7D193E62FD00803F2C /* Main.storyboard */; };
 		FD977B81193E62FD00803F2C /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD977B80193E62FD00803F2C /* Images.xcassets */; };
 		FD977B8D193E62FD00803F2C /* SwiftExampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD977B8C193E62FD00803F2C /* SwiftExampleTests.swift */; };
+		FD977B97193E68C200803F2C /* ApiController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD977B96193E68C200803F2C /* ApiController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,7 @@
 		FD977B86193E62FD00803F2C /* SwiftExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD977B8B193E62FD00803F2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FD977B8C193E62FD00803F2C /* SwiftExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftExampleTests.swift; sourceTree = "<group>"; };
+		FD977B96193E68C200803F2C /* ApiController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ApiController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +79,7 @@
 			children = (
 				FD977B79193E62FD00803F2C /* AppDelegate.swift */,
 				FD977B7B193E62FD00803F2C /* ViewController.swift */,
+				FD977B96193E68C200803F2C /* ApiController.swift */,
 				FD977B7D193E62FD00803F2C /* Main.storyboard */,
 				FD977B80193E62FD00803F2C /* Images.xcassets */,
 				FD977B77193E62FD00803F2C /* Supporting Files */,
@@ -210,6 +213,7 @@
 			files = (
 				FD977B7C193E62FD00803F2C /* ViewController.swift in Sources */,
 				FD977B7A193E62FD00803F2C /* AppDelegate.swift in Sources */,
+				FD977B97193E68C200803F2C /* ApiController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,6 +332,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				INFOPLIST_FILE = SwiftExample/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -339,6 +344,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				INFOPLIST_FILE = SwiftExample/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
