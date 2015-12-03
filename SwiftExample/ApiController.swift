@@ -23,21 +23,22 @@ class APIController: NSObject {
     func searchItunesFor(searchTerm: String) {
         
         // The iTunes API wants multiple terms separated by + sym[bols, so replace spaces with + signs
-        var itunesSearchTerm = searchTerm.stringByReplacingOccurrencesOfString(" ", withString: "+", options: NSStringCompareOptions.CaseInsensitiveSearch, range: nil)
+        let itunesSearchTerm = searchTerm.stringByReplacingOccurrencesOfString(" ", withString: "+", options: NSStringCompareOptions.CaseInsensitiveSearch, range: nil)
         
         // Now escape anything else that isn't URL-friendly
-        var escapedSearchTerm = itunesSearchTerm.stringByAddingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
-        var urlPath = "https://itunes.apple.com/search?term=\(escapedSearchTerm)&media=software"
-        var url: NSURL = NSURL(string: urlPath)
-        var request: NSURLRequest = NSURLRequest(URL: url)
-        var connection: NSURLConnection = NSURLConnection(request: request, delegate: self, startImmediately: false)
+
+        let escapedSearchTerm = itunesSearchTerm.stringByAddingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
+        let urlPath = "https://itunes.apple.com/search?term=\(escapedSearchTerm)&media=software"
+        let url: NSURL = NSURL(string: urlPath)!
+        let request: NSURLRequest = NSURLRequest(URL: url)
+        let connection: NSURLConnection = NSURLConnection(request: request, delegate: self, startImmediately: false)!
         
         connection.start()
     }
     
     
     func connection(connection: NSURLConnection!, didFailWithError error: NSError!) {
-        println("Connection failed.\(error.localizedDescription)")
+        print("Connection failed.\(error.localizedDescription)")
     }
     
     
@@ -54,11 +55,15 @@ class APIController: NSObject {
     func connectionDidFinishLoading(connection: NSURLConnection!) {
         // Request complete, self.data should now hold the resulting info
         // Convert the retrieved data in to an object through JSON deserialization
-        var err: NSError
-        var jsonResult: NSDictionary = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers, error: nil) as NSDictionary
+        let jsonResult: NSDictionary?
+        do {
+            jsonResult = try! NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers) as! NSDictionary
+        }
+            
+
         
         // Now send the JSON result to our delegate object
-        delegate?.didRecieveAPIResults(jsonResult)
+        delegate?.didRecieveAPIResults(jsonResult!)
     }
     
     
