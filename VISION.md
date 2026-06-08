@@ -45,3 +45,6 @@ work.
 - Network behavior without failure handling
 - Broad Swift migration mixed with sample behavior changes
 - Generated signing material
+
+This list is a roadmap guardrail, not a permanent rule.
+Strong user demand and strong technical rationale can change it.
