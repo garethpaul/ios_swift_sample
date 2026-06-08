@@ -74,4 +74,4 @@ Keep changes small and tied to the project that is already present in this repos
 
 Prior README summary:
 
-> ios_swift_sample <!-- README-OVERVIEW-IMAGE --> ios_swift_sample ================ Simple iOS Swift Example Basic Application sends HTTP request via ApiController.swift > renders JSON response to UITableView. Screenshot
+> ios_swift_sample ios_swift_sample ================ Simple iOS Swift Example Basic Application sends HTTP request via ApiController.swift > renders JSON response to UITableView. Screenshot
