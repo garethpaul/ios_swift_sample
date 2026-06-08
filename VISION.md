@@ -39,7 +39,7 @@ Network samples should not embed private credentials or send user data to
 undocumented endpoints. Use HTTPS and documented configuration for future API
 work.
 
-## What We Will Not Merge For Now
+## What We Will Not Merge (For Now)
 
 - Hardcoded private API keys or endpoints
 - Network behavior without failure handling
