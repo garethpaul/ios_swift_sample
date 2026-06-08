@@ -1,3 +1,8 @@
+# ios_swift_sample
+
+<!-- README-OVERVIEW-IMAGE -->
+![Project overview](docs/readme-overview.svg)
+
 ios_swift_sample
 ================
 
