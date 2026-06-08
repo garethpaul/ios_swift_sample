@@ -1,5 +1,8 @@
 ## iOS Swift Sample Vision
 
+This document explains the current state and direction of the project.
+Project overview and developer docs: [`README.md`](README.md)
+
 iOS Swift Sample is a basic Swift app that sends an HTTP request, parses JSON,
 and renders the response in a table view.
 
