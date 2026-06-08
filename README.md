@@ -51,10 +51,11 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Open `SwiftExample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The sample queries the public HTTPS iTunes Search API and renders the JSON `results` array in a table view.
 - Network, URL, JSON, missing result, and missing artwork failures should return an empty or partially rendered table state instead of crashing.
+- Artwork loading accepts only HTTPS `mzstatic.com` artwork URLs from the iTunes response; malformed or untrusted artwork URL values leave the image empty.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, optional JSON/table/image handling, and documentation.
+- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, artwork URL host boundaries, optional JSON/table/image handling, and documentation.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -67,7 +68,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Security and Privacy Notes
 
 - Review changes touching network requests, sockets, or service endpoints; examples from the scan include `SwiftExample/ApiController.swift`, `SwiftExample/Info.plist`, `SwiftExample.xcodeproj/project.pbxproj`, and the shared Xcode scheme.
-- Keep the sample on the documented public HTTPS iTunes Search API unless endpoint changes are reviewed separately. Network and JSON failure handling should avoid console logging private data and avoid forced unwraps.
+- Keep the sample on the documented public HTTPS iTunes Search API unless endpoint changes are reviewed separately. Network, artwork URL, and JSON failure handling should avoid console logging private data, arbitrary URL schemes, and forced unwraps.
 - Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include `SwiftExample/ApiController.swift`, `SwiftExample/Info.plist`, `SwiftExample/ViewController.swift`, `SwiftExample/Base.lproj/Main.storyboard`, and asset catalogs.
 
 ## Maintenance Notes

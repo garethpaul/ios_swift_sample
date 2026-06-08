@@ -31,7 +31,7 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
             cell.textLabel?.text = rowData["trackName"] as? String
 
             if let urlString = rowData["artworkUrl60"] as? String,
-                imgURL = NSURL(string: urlString),
+                imgURL = safeArtworkURLFromString(urlString),
                 imgData = NSData(contentsOfURL: imgURL) {
                     cell.imageView?.image = UIImage(data: imgData)
             }
@@ -52,6 +52,18 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         
         return cell
     }
+
+    func safeArtworkURLFromString(urlString: String) -> NSURL? {
+        if let url = NSURL(string: urlString),
+            scheme = url.scheme?.lowercaseString,
+            host = url.host?.lowercaseString {
+                if scheme == "https" && (host == "mzstatic.com" || host.hasSuffix(".mzstatic.com")) {
+                    return url
+                }
+        }
+
+        return nil
+    }
     
     func didRecieveAPIResults(results: NSDictionary) {
         // Store the results in our table data array
@@ -66,6 +78,5 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
     
 }
-
 
 

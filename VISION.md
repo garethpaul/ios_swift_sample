@@ -25,6 +25,7 @@ Priority:
 - Preserve the `ApiController` network request and table rendering behavior
 - Keep malformed URLs, failed connections, invalid JSON, missing results, and
   missing artwork from crashing the sample
+- Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials
 - Maintain a small Xcode project structure
@@ -44,6 +45,7 @@ Contribution rules:
   project, or security documentation changes.
 - Keep credentials and signing files out of git.
 - Document endpoint and response-shape changes.
+- Keep parsed artwork URL host and scheme boundaries explicit.
 
 ## Security
 

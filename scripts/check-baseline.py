@@ -117,6 +117,7 @@ def check_required_files():
         "SwiftExample/ViewController.swift",
         "SwiftExampleTests/Info.plist",
         "SwiftExampleTests/SwiftExampleTests.swift",
+        "docs/plans/2026-06-08-artwork-url-boundary.md",
     ]
 
     for path in required:
@@ -225,6 +226,10 @@ def check_first_party_swift():
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
     expect("if let rowData = self.tableData[indexPath.row] as? NSDictionary" in view, "ViewController should optional-cast table rows")
     expect("if let urlString = rowData[\"artworkUrl60\"] as? String" in view, "ViewController should optional-cast artwork URL")
+    expect("safeArtworkURLFromString(urlString)" in view, "ViewController should validate artwork URLs before loading them")
+    expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
+    expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
+           "ViewController should restrict artwork loading to HTTPS mzstatic.com URLs")
     expect("if let imageView = cell.imageView" in view, "ViewController should guard image-view styling")
     expect("if let resultsArray = results[\"results\"] as? NSArray" in view, "ViewController should optional-cast result arrays")
     expect("self.appsTableView?.reloadData()" in view, "ViewController should reload the table view safely")
@@ -237,6 +242,7 @@ def check_docs():
     security = read_text("SECURITY.md")
     changes = read_text("CHANGES.md")
     plan = read_text("docs/plans/2026-06-08-swift-sample-baseline.md")
+    artwork_plan = read_text("docs/plans/2026-06-08-artwork-url-boundary.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -253,10 +259,14 @@ def check_docs():
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("scripts/check-baseline.py" in vision, "VISION should name the baseline checker")
     expect("public HTTPS iTunes" in security, "SECURITY should call out the public HTTPS endpoint boundary")
+    expect("mzstatic.com" in readme and "mzstatic.com" in vision and "mzstatic.com" in security,
+           "docs should describe the artwork URL host boundary")
     expect("forced JSON" in changes, "CHANGES should mention forced JSON hardening")
+    expect("artwork URL" in changes and "mzstatic.com" in changes, "CHANGES should mention artwork URL hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
     expect("status: completed" in plan, "baseline plan should be marked completed")
+    expect("status: completed" in artwork_plan, "artwork URL plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
