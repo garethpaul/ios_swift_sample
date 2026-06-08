@@ -7,6 +7,7 @@ import json
 import plistlib
 import re
 import shutil
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -78,6 +79,20 @@ def strip_swift_comments(text):
         else:
             lines.append(line)
     return "\n".join(lines)
+
+
+def git_ls_files():
+    result = subprocess.run(
+        ["git", "ls-files"],
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        FAILURES.append("git ls-files failed: {}".format(result.stderr.strip()))
+        return set()
+    return set(result.stdout.splitlines())
 
 
 def check_required_files():
@@ -248,14 +263,10 @@ def check_docs():
 
 
 def check_git_hygiene():
-    user_state_files = [
-        path
-        for path in rel("SwiftExample.xcodeproj").glob("**/xcuserdata/**/*")
-        if path.is_file()
-    ]
+    tracked_files = git_ls_files()
     expect(
-        not user_state_files,
-        "user-specific Xcode state should not be present in the repository tree",
+        not any("/xcuserdata/" in path or path.endswith(".xcuserstate") for path in tracked_files),
+        "user-specific Xcode state should not be tracked",
     )
 
 
