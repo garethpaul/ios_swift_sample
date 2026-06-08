@@ -35,6 +35,11 @@ Contribution rules:
 
 ## Security
 
+Canonical security policy and reporting:
+
+- [`SECURITY.md`](SECURITY.md)
+
+
 Network samples should not embed private credentials or send user data to
 undocumented endpoints. Use HTTPS and documented configuration for future API
 work.
