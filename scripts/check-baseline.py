@@ -250,7 +250,7 @@ def check_docs():
 def check_git_hygiene():
     user_state_files = [
         path
-        for path in rel("SwiftExample.xcodeproj").glob("xcuserdata/**/*")
+        for path in rel("SwiftExample.xcodeproj").glob("**/xcuserdata/**/*")
         if path.is_file()
     ]
     expect(
