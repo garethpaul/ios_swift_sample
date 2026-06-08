@@ -1,5 +1,8 @@
 # ios_swift_sample
 
+<!-- README-OVERVIEW-IMAGE -->
+![Project overview](docs/readme-overview.svg)
+
 ## Overview
 
 `garethpaul/ios_swift_sample` is an Apple platform application or Swift sample. Simple iOS Swift Example
@@ -72,4 +75,3 @@ Keep changes small and tied to the project that is already present in this repos
 Prior README summary:
 
 > ios_swift_sample <!-- README-OVERVIEW-IMAGE --> ios_swift_sample ================ Simple iOS Swift Example Basic Application sends HTTP request via ApiController.swift > renders JSON response to UITableView. Screenshot
-
