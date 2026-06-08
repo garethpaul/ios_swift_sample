@@ -13,11 +13,18 @@ in [`README.md`](README.md).
 The goal is to keep the sample clear, runnable, and focused on the request to
 table-view flow.
 
+Current baseline: `make check` runs `scripts/check-baseline.py` to verify the
+legacy Xcode project shape, committed plists, storyboard and asset parsing,
+public HTTPS iTunes endpoint usage, URL/connection/JSON failure handling,
+optional table rendering, credential guardrails, and documentation.
+
 The current focus is:
 
 Priority:
 
 - Preserve the `ApiController` network request and table rendering behavior
+- Keep malformed URLs, failed connections, invalid JSON, missing results, and
+  missing artwork from crashing the sample
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials
 - Maintain a small Xcode project structure
@@ -33,6 +40,8 @@ Contribution rules:
 
 - One PR = one focused networking, table view, build, or documentation change.
 - Verify the table renders after API or storyboard changes.
+- Run `make check` before pushing source, plist, storyboard, asset, Xcode
+  project, or security documentation changes.
 - Keep credentials and signing files out of git.
 - Document endpoint and response-shape changes.
 
@@ -44,7 +53,7 @@ Canonical security policy and reporting:
 
 Network samples should not embed private credentials or send user data to
 undocumented endpoints. Use HTTPS and documented configuration for future API
-work.
+work. Keep failure handling explicit and avoid logging private data.
 
 ## What We Will Not Merge (For Now)
 

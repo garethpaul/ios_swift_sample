@@ -16,7 +16,7 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         super.viewDidLoad()
         api.delegate = self
         UIApplication.sharedApplication().networkActivityIndicatorVisible = true
-        api.searchItunesFor("Angry Birds");
+        api.searchItunesFor("Angry Birds")
     }
     
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -27,22 +27,22 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell: UITableViewCell = UITableViewCell(style: UITableViewCellStyle.Subtitle, reuseIdentifier: "MyTestCell")
         
-        let rowData: NSDictionary = self.tableData[indexPath.row] as! NSDictionary
-        
-        cell.textLabel?.text = rowData["trackName"] as? String
-        
-        // Grab the artworkUrl60 key to get an image URL for the app's thumbnail
-        let urlString: NSString = rowData["artworkUrl60"] as! NSString
-        let imgURL: NSURL = NSURL(string: urlString as String)!
-        
-        // Download an NSData representation of the image at the URL
-        let imgData: NSData = NSData(contentsOfURL: imgURL)!
-        cell.imageView?.image = UIImage(data: imgData)
+        if let rowData = self.tableData[indexPath.row] as? NSDictionary {
+            cell.textLabel?.text = rowData["trackName"] as? String
+
+            if let urlString = rowData["artworkUrl60"] as? String,
+                imgURL = NSURL(string: urlString),
+                imgData = NSData(contentsOfURL: imgURL) {
+                    cell.imageView?.image = UIImage(data: imgData)
+            }
+        }
 
         // Circular image
-        cell.imageView!.layer.cornerRadius = 23
-        cell.imageView!.layer.masksToBounds = true
-        cell.imageView!.layer.borderWidth = 0
+        if let imageView = cell.imageView {
+            imageView.layer.cornerRadius = 23
+            imageView.layer.masksToBounds = true
+            imageView.layer.borderWidth = 0
+        }
         
         
         // Get the formatted price string for display in the subtitle
@@ -55,15 +55,17 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     
     func didRecieveAPIResults(results: NSDictionary) {
         // Store the results in our table data array
-        if results.count>0 {
-            self.tableData = results["results"] as! NSArray
-            self.appsTableView!.reloadData()
-            UIApplication.sharedApplication().networkActivityIndicatorVisible = false
+        if let resultsArray = results["results"] as? NSArray {
+            self.tableData = resultsArray
+        } else {
+            self.tableData = NSArray()
         }
+
+        self.appsTableView?.reloadData()
+        UIApplication.sharedApplication().networkActivityIndicatorVisible = false
     }
     
 }
-
 
 
 

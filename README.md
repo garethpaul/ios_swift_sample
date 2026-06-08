@@ -12,7 +12,10 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 ## Repository Contents
 
 - `README.md` - project overview and local usage notes
+- `CHANGES.md` - recent maintenance changes
+- `Makefile` - local static verification entry point
 - `SECURITY.md` - security reporting and disclosure guidance
+- `scripts/check-baseline.py` - static Swift/Xcode baseline checks
 - `SwiftExample` - source or example code
 - `SwiftExample.xcodeproj` - Xcode project file
 - `SwiftExampleTests` - source or example code
@@ -22,7 +25,7 @@ Additional scan context:
 
 - Source directories: SwiftExample, SwiftExample.xcodeproj, SwiftExampleTests
 - Dependency and build manifests: none detected
-- Entry points or build surfaces: SwiftExample.xcodeproj
+- Entry points or build surfaces: `make check`, SwiftExample.xcodeproj
 - Test-looking files: SwiftExampleTests/Info.plist, SwiftExampleTests/SwiftExampleTests.swift
 
 ## Getting Started
@@ -30,6 +33,7 @@ Additional scan context:
 ### Prerequisites
 
 - Git
+- Python 3 for static verification with `make check`
 - macOS with Xcode for building Apple platform projects
 
 ### Setup
@@ -37,6 +41,7 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/ios_swift_sample.git
 cd ios_swift_sample
+make check
 ```
 
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
@@ -44,9 +49,12 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 ## Running or Using the Project
 
 - Open `SwiftExample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
+- The sample queries the public HTTPS iTunes Search API and renders the JSON `results` array in a table view.
+- Network, URL, JSON, missing result, and missing artwork failures should return an empty or partially rendered table state instead of crashing.
 
 ## Testing and Verification
 
+- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, optional JSON/table/image handling, and documentation.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -54,15 +62,18 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Configuration and Secrets
 
 - No required secret or credential file was identified in the repository scan. If you add integrations later, keep secrets out of git.
+- Do not add private endpoints, API credentials, tokens, signing material, `.env` files, or machine-local Xcode configuration to source control.
 
 ## Security and Privacy Notes
 
-- Review changes touching network requests, sockets, or service endpoints; examples from the scan include SwiftExample/ApiController.swift, SwiftExample/Info.plist, SwiftExample.xcodeproj/xcuserdata/garethjones.xcuserdatad/xcschemes/xcschememanagement.plist, SwiftExample.xcodeproj/xcuserdata/gjones.xcuserdatad/xcschemes/xcschememanagement.plist, and 1 more.
-- Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include SwiftExample/ApiController.swift, SwiftExample/Info.plist, SwiftExample/ViewController.swift, SwiftExample.xcodeproj/xcuserdata/garethjones.xcuserdatad/xcschemes/xcschememanagement.plist, and 2 more.
+- Review changes touching network requests, sockets, or service endpoints; examples from the scan include `SwiftExample/ApiController.swift`, `SwiftExample/Info.plist`, `SwiftExample.xcodeproj/project.pbxproj`, and the shared Xcode scheme.
+- Keep the sample on the documented public HTTPS iTunes Search API unless endpoint changes are reviewed separately. Network and JSON failure handling should avoid console logging private data and avoid forced unwraps.
+- Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include `SwiftExample/ApiController.swift`, `SwiftExample/Info.plist`, `SwiftExample/ViewController.swift`, `SwiftExample/Base.lproj/Main.storyboard`, and asset catalogs.
 
 ## Maintenance Notes
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
+- Run `make check` before pushing changes to Swift sources, plists, storyboards, assets, Xcode project metadata, or security docs.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 
