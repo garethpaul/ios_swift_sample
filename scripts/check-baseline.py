@@ -108,6 +108,7 @@ def check_required_files():
         "docs/plans/2026-06-08-artwork-url-tests.md",
         "docs/readme-overview.svg",
         "docs/plans/2026-06-09-api-completion-cleanup.md",
+        "docs/plans/2026-06-09-ui-result-main-thread.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -247,6 +248,10 @@ def check_first_party_swift():
            "SwiftExampleTests should replace generated placeholder tests")
     expect("if let imageView = cell.imageView" in view, "ViewController should guard image-view styling")
     expect("if let resultsArray = results[\"results\"] as? NSArray" in view, "ViewController should optional-cast result arrays")
+    expect("if !NSThread.isMainThread()" in view and
+           "dispatch_async(dispatch_get_main_queue())" in view and
+           "self.didRecieveAPIResults(results)" in view,
+           "ViewController should hop API result UI updates back to the main thread")
     expect("self.appsTableView?.reloadData()" in view, "ViewController should reload the table view safely")
     expect("networkActivityIndicatorVisible = false" in view, "ViewController should clear the network activity indicator")
 
@@ -261,6 +266,7 @@ def check_docs():
     artwork_tests_plan = read_text("docs/plans/2026-06-08-artwork-url-tests.md")
     table_index_plan = read_text("docs/plans/2026-06-08-table-index-guard.md")
     completion_cleanup_plan = read_text("docs/plans/2026-06-09-api-completion-cleanup.md")
+    ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -273,6 +279,7 @@ def check_docs():
         expect("itunes" in lowered, "{} should document the iTunes Search API sample".format(text_name))
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
         expect("failure" in lowered, "{} should document network or JSON failure handling".format(text_name))
+        expect("main thread" in lowered, "{} should document main-thread UI result handling".format(text_name))
 
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("scripts/check-baseline.py" in vision, "VISION should name the baseline checker")
@@ -286,6 +293,7 @@ def check_docs():
     expect("artwork URL" in changes and "mzstatic.com" in changes, "CHANGES should mention artwork URL hardening")
     expect("artwork URL tests" in changes, "CHANGES should mention artwork URL tests")
     expect("response buffer" in changes, "CHANGES should mention API response buffer cleanup")
+    expect("main-thread" in changes, "CHANGES should mention main-thread UI result handling")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
@@ -294,6 +302,7 @@ def check_docs():
     expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
     expect("status: completed" in table_index_plan, "table index plan should be marked completed")
     expect("status: completed" in completion_cleanup_plan, "API completion cleanup plan should be marked completed")
+    expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))

@@ -4,6 +4,8 @@
 
 - Centralized API completion so parsed and empty result paths clear the retained
   response buffer after notifying the delegate.
+- Routed API result UI updates through a main-thread guard before table reloads
+  and network activity indicator changes.
 
 ## 2026-06-08
 

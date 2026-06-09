@@ -68,6 +68,13 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
     
     func didRecieveAPIResults(results: NSDictionary) {
+        if !NSThread.isMainThread() {
+            dispatch_async(dispatch_get_main_queue()) {
+                self.didRecieveAPIResults(results)
+            }
+            return
+        }
+
         // Store the results in our table data array
         if let resultsArray = results["results"] as? NSArray {
             self.tableData = resultsArray
@@ -80,4 +87,3 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
     
 }
-
