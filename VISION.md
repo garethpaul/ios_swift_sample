@@ -25,6 +25,7 @@ Priority:
 - Preserve the `ApiController` network request and table rendering behavior
 - Keep malformed URLs, failed connections, invalid JSON, missing results, and
   missing artwork from crashing the sample
+- Guard table indexes before reading parsed result rows
 - Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials

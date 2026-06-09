@@ -104,6 +104,7 @@ def check_required_files():
         "SECURITY.md",
         "VISION.md",
         "docs/plans/2026-06-08-swift-sample-baseline.md",
+        "docs/plans/2026-06-08-table-index-guard.md",
         "docs/readme-overview.svg",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
@@ -224,6 +225,7 @@ def check_first_party_swift():
     expect("catch {" in api, "ApiController should handle invalid JSON")
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
+    expect("if indexPath.row < self.tableData.count" in view, "ViewController should guard table indexes before reading results")
     expect("if let rowData = self.tableData[indexPath.row] as? NSDictionary" in view, "ViewController should optional-cast table rows")
     expect("if let urlString = rowData[\"artworkUrl60\"] as? String" in view, "ViewController should optional-cast artwork URL")
     expect("safeArtworkURLFromString(urlString)" in view, "ViewController should validate artwork URLs before loading them")
@@ -243,6 +245,7 @@ def check_docs():
     changes = read_text("CHANGES.md")
     plan = read_text("docs/plans/2026-06-08-swift-sample-baseline.md")
     artwork_plan = read_text("docs/plans/2026-06-08-artwork-url-boundary.md")
+    table_index_plan = read_text("docs/plans/2026-06-08-table-index-guard.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -263,10 +266,12 @@ def check_docs():
            "docs should describe the artwork URL host boundary")
     expect("forced JSON" in changes, "CHANGES should mention forced JSON hardening")
     expect("artwork URL" in changes and "mzstatic.com" in changes, "CHANGES should mention artwork URL hardening")
+    expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in artwork_plan, "artwork URL plan should be marked completed")
+    expect("status: completed" in table_index_plan, "table index plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))

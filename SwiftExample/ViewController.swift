@@ -27,13 +27,15 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell: UITableViewCell = UITableViewCell(style: UITableViewCellStyle.Subtitle, reuseIdentifier: "MyTestCell")
         
-        if let rowData = self.tableData[indexPath.row] as? NSDictionary {
-            cell.textLabel?.text = rowData["trackName"] as? String
+        if indexPath.row < self.tableData.count {
+            if let rowData = self.tableData[indexPath.row] as? NSDictionary {
+                cell.textLabel?.text = rowData["trackName"] as? String
 
-            if let urlString = rowData["artworkUrl60"] as? String,
-                imgURL = safeArtworkURLFromString(urlString),
-                imgData = NSData(contentsOfURL: imgURL) {
-                    cell.imageView?.image = UIImage(data: imgData)
+                if let urlString = rowData["artworkUrl60"] as? String,
+                    imgURL = safeArtworkURLFromString(urlString),
+                    imgData = NSData(contentsOfURL: imgURL) {
+                        cell.imageView?.image = UIImage(data: imgData)
+                }
             }
         }
 
@@ -78,5 +80,4 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
     
 }
-
 
