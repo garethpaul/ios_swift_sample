@@ -30,6 +30,7 @@ Helpful reports include:
 - URL construction, connection failure handling, JSON parsing, table rendering, and artwork loading should avoid forced unwraps and should return an empty or partially rendered state when data is malformed.
 - API completion should clear the retained response buffer after delivering parsed or empty results.
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
+- Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.
 - Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.

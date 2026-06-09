@@ -24,4 +24,28 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertNil(controller.safeArtworkURLFromString("not a url"))
     }
 
+    func testAPIResultsReplaceTableDataWhenResultsArrayPresent() {
+        let controller = SearchResultsViewController()
+        let result = NSDictionary(object: "Angry Birds", forKey: "trackName")
+        let results = NSArray(object: result)
+
+        controller.didRecieveAPIResults(NSDictionary(object: results, forKey: "results"))
+
+        XCTAssertEqual(controller.tableData.count, 1)
+        if let firstResult = controller.tableData.firstObject as? NSDictionary {
+            XCTAssertEqual(firstResult["trackName"] as? String, "Angry Birds")
+        } else {
+            XCTFail("Expected first API result")
+        }
+    }
+
+    func testAPIResultsClearTableDataWhenResultsArrayMissing() {
+        let controller = SearchResultsViewController()
+        controller.tableData = NSArray(object: NSDictionary(object: "Stale", forKey: "trackName"))
+
+        controller.didRecieveAPIResults(NSDictionary(object: "not an array", forKey: "results"))
+
+        XCTAssertEqual(controller.tableData.count, 0)
+    }
+
 }

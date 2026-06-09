@@ -54,11 +54,12 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - API completion clears the retained response buffer after delivering parsed or empty results.
 - API results hop back to the main thread before updating table data, reloading the table, or clearing the network activity indicator.
 - Table rendering validates the row index before reading from the parsed results array.
+- Result array tests cover accepted API arrays and malformed payloads that should clear stale table data.
 - Artwork loading accepts only HTTPS `mzstatic.com` artwork URLs from the iTunes response; malformed or untrusted artwork URL values leave the image empty. Artwork URL tests cover allowed hosts and rejected schemes/hosts.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, main thread UI result handling, table index guards, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
+- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, main thread UI result handling, table index guards, result array tests, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

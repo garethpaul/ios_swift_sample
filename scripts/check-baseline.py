@@ -108,6 +108,7 @@ def check_required_files():
         "docs/plans/2026-06-08-artwork-url-tests.md",
         "docs/readme-overview.svg",
         "docs/plans/2026-06-09-api-completion-cleanup.md",
+        "docs/plans/2026-06-09-result-array-tests.md",
         "docs/plans/2026-06-09-ui-result-main-thread.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
@@ -244,6 +245,13 @@ def check_first_party_swift():
     expect("testSafeArtworkURLAcceptsHTTPSMZStaticHosts" in tests, "SwiftExampleTests should cover allowed artwork URLs")
     expect("testSafeArtworkURLRejectsUntrustedSchemesAndHosts" in tests, "SwiftExampleTests should cover rejected artwork URLs")
     expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
+    expect("testAPIResultsReplaceTableDataWhenResultsArrayPresent" in tests,
+           "SwiftExampleTests should cover accepted API result arrays")
+    expect("testAPIResultsClearTableDataWhenResultsArrayMissing" in tests,
+           "SwiftExampleTests should cover malformed API result payloads")
+    expect("XCTAssertEqual(controller.tableData.count, 1)" in tests and
+           "XCTAssertEqual(controller.tableData.count, 0)" in tests,
+           "SwiftExampleTests should assert result-array table states")
     expect("XCTAssert(true" not in tests and "testPerformanceExample" not in tests,
            "SwiftExampleTests should replace generated placeholder tests")
     expect("if let imageView = cell.imageView" in view, "ViewController should guard image-view styling")
@@ -266,6 +274,7 @@ def check_docs():
     artwork_tests_plan = read_text("docs/plans/2026-06-08-artwork-url-tests.md")
     table_index_plan = read_text("docs/plans/2026-06-08-table-index-guard.md")
     completion_cleanup_plan = read_text("docs/plans/2026-06-09-api-completion-cleanup.md")
+    result_array_tests_plan = read_text("docs/plans/2026-06-09-result-array-tests.md")
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     gitignore = read_text(".gitignore")
 
@@ -280,6 +289,7 @@ def check_docs():
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
         expect("failure" in lowered, "{} should document network or JSON failure handling".format(text_name))
         expect("main thread" in lowered, "{} should document main-thread UI result handling".format(text_name))
+        expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
 
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("scripts/check-baseline.py" in vision, "VISION should name the baseline checker")
@@ -289,9 +299,13 @@ def check_docs():
     expect("artwork URL tests" in readme, "README should mention artwork URL tests")
     expect("artwork URL tests" in vision, "VISION should mention artwork URL tests")
     expect("artwork URL tests" in security, "SECURITY should mention artwork URL tests")
+    expect("result array tests" in readme.lower(), "README should mention result array tests")
+    expect("result array tests" in vision.lower(), "VISION should mention result array tests")
+    expect("result array tests" in security.lower(), "SECURITY should mention result array tests")
     expect("forced JSON" in changes, "CHANGES should mention forced JSON hardening")
     expect("artwork URL" in changes and "mzstatic.com" in changes, "CHANGES should mention artwork URL hardening")
     expect("artwork URL tests" in changes, "CHANGES should mention artwork URL tests")
+    expect("result array tests" in changes.lower(), "CHANGES should mention result array tests")
     expect("response buffer" in changes, "CHANGES should mention API response buffer cleanup")
     expect("main-thread" in changes, "CHANGES should mention main-thread UI result handling")
     expect("table index" in changes, "CHANGES should mention table index hardening")
@@ -302,6 +316,7 @@ def check_docs():
     expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
     expect("status: completed" in table_index_plan, "table index plan should be marked completed")
     expect("status: completed" in completion_cleanup_plan, "API completion cleanup plan should be marked completed")
+    expect("status: completed" in result_array_tests_plan, "result array tests plan should be marked completed")
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):

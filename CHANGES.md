@@ -6,6 +6,8 @@
   response buffer after notifying the delegate.
 - Routed API result UI updates through a main-thread guard before table reloads
   and network activity indicator changes.
+- Added result array tests for accepted API arrays and malformed payloads that
+  should clear stale table data.
 
 ## 2026-06-08
 
