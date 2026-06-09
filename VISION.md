@@ -16,7 +16,8 @@ table-view flow.
 Current baseline: `make check` runs `scripts/check-baseline.py` to verify the
 legacy Xcode project shape, committed plists, storyboard and asset parsing,
 public HTTPS iTunes endpoint usage, URL/connection/JSON failure handling,
-optional table rendering, credential guardrails, and documentation.
+API completion cleanup, optional table rendering, credential guardrails, and
+documentation.
 
 The current focus is:
 
@@ -25,6 +26,7 @@ Priority:
 - Preserve the `ApiController` network request and table rendering behavior
 - Keep malformed URLs, failed connections, invalid JSON, missing results, and
   missing artwork from crashing the sample
+- Clear the retained response buffer after parsed or empty API completion
 - Guard table indexes before reading parsed result rows
 - Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
 - Keep artwork URL tests covering allowed hosts and rejected schemes/hosts

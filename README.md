@@ -51,12 +51,13 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Open `SwiftExample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The sample queries the public HTTPS iTunes Search API and renders the JSON `results` array in a table view.
 - Network, URL, JSON, missing result, and missing artwork failures should return an empty or partially rendered table state instead of crashing.
+- API completion clears the retained response buffer after delivering parsed or empty results.
 - Table rendering validates the row index before reading from the parsed results array.
 - Artwork loading accepts only HTTPS `mzstatic.com` artwork URLs from the iTunes response; malformed or untrusted artwork URL values leave the image empty. Artwork URL tests cover allowed hosts and rejected schemes/hosts.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, table index guards, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
+- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, table index guards, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

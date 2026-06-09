@@ -107,6 +107,7 @@ def check_required_files():
         "docs/plans/2026-06-08-table-index-guard.md",
         "docs/plans/2026-06-08-artwork-url-tests.md",
         "docs/readme-overview.svg",
+        "docs/plans/2026-06-09-api-completion-cleanup.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -220,7 +221,11 @@ def check_first_party_swift():
     expect("if let escapedSearchTerm" in api, "ApiController should handle failed term encoding")
     expect("if let url = NSURL(string: urlPath)" in api, "ApiController should handle failed URL creation")
     expect("if let connection = NSURLConnection" in api, "ApiController should handle failed connection creation")
-    expect("delegate?.didRecieveAPIResults(NSDictionary())" in api, "ApiController should return empty results on failure")
+    expect("func completeWithResults(results: NSDictionary)" in api, "ApiController should centralize API completion")
+    expect("delegate?.didRecieveAPIResults(results)" in api, "ApiController should deliver parsed results through completion helper")
+    expect("completeWithResults(NSDictionary())" in api, "ApiController should return empty results on failure")
+    expect("completeWithResults(jsonResult)" in api, "ApiController should deliver parsed JSON through completion helper")
+    expect("self.data = NSMutableData()" in api, "ApiController should clear retained response data after completion")
     expect("func connection(connection: NSURLConnection, didFailWithError error: NSError)" in api, "ApiController should implement the failure delegate")
     expect("func connection(connection: NSURLConnection, didReceiveResponse response: NSURLResponse)" in api, "ApiController should clear data on response")
     expect("try NSJSONSerialization.JSONObjectWithData" in api, "ApiController should parse JSON without try!")
@@ -255,6 +260,7 @@ def check_docs():
     artwork_plan = read_text("docs/plans/2026-06-08-artwork-url-boundary.md")
     artwork_tests_plan = read_text("docs/plans/2026-06-08-artwork-url-tests.md")
     table_index_plan = read_text("docs/plans/2026-06-08-table-index-guard.md")
+    completion_cleanup_plan = read_text("docs/plans/2026-06-09-api-completion-cleanup.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -279,6 +285,7 @@ def check_docs():
     expect("forced JSON" in changes, "CHANGES should mention forced JSON hardening")
     expect("artwork URL" in changes and "mzstatic.com" in changes, "CHANGES should mention artwork URL hardening")
     expect("artwork URL tests" in changes, "CHANGES should mention artwork URL tests")
+    expect("response buffer" in changes, "CHANGES should mention API response buffer cleanup")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
@@ -286,6 +293,7 @@ def check_docs():
     expect("status: completed" in artwork_plan, "artwork URL plan should be marked completed")
     expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
     expect("status: completed" in table_index_plan, "table index plan should be marked completed")
+    expect("status: completed" in completion_cleanup_plan, "API completion cleanup plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))

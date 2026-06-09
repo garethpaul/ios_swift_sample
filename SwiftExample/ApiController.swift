@@ -33,13 +33,17 @@ class APIController: NSObject {
             }
         }
 
-        delegate?.didRecieveAPIResults(NSDictionary())
+        completeWithResults(NSDictionary())
+    }
+
+    func completeWithResults(results: NSDictionary) {
+        delegate?.didRecieveAPIResults(results)
+        self.data = NSMutableData()
     }
     
     
     func connection(connection: NSURLConnection, didFailWithError error: NSError) {
-        self.data = NSMutableData()
-        delegate?.didRecieveAPIResults(NSDictionary())
+        completeWithResults(NSDictionary())
     }
     
     
@@ -58,12 +62,12 @@ class APIController: NSObject {
         // Convert the retrieved data in to an object through JSON deserialization
         do {
             if let jsonResult = try NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers) as? NSDictionary {
-                delegate?.didRecieveAPIResults(jsonResult)
+                completeWithResults(jsonResult)
             } else {
-                delegate?.didRecieveAPIResults(NSDictionary())
+                completeWithResults(NSDictionary())
             }
         } catch {
-            delegate?.didRecieveAPIResults(NSDictionary())
+            completeWithResults(NSDictionary())
         }
     }
     

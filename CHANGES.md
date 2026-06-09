@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-09
+
+- Centralized API completion so parsed and empty result paths clear the retained
+  response buffer after notifying the delegate.
+
 ## 2026-06-08
 
 - Hardened iTunes search URL construction so malformed search text returns an empty result set instead of force-unwrapping.
