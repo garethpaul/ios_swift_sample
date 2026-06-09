@@ -27,6 +27,7 @@ Priority:
   missing artwork from crashing the sample
 - Guard table indexes before reading parsed result rows
 - Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
+- Keep artwork URL tests covering allowed hosts and rejected schemes/hosts
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials
 - Maintain a small Xcode project structure

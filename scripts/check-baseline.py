@@ -105,6 +105,7 @@ def check_required_files():
         "VISION.md",
         "docs/plans/2026-06-08-swift-sample-baseline.md",
         "docs/plans/2026-06-08-table-index-guard.md",
+        "docs/plans/2026-06-08-artwork-url-tests.md",
         "docs/readme-overview.svg",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
@@ -201,6 +202,7 @@ def check_first_party_swift():
     api_raw = raw_source_by_name.get("ApiController.swift", "")
     api = source_by_name.get("ApiController.swift", "")
     view = source_by_name.get("ViewController.swift", "")
+    tests = source_by_name.get("SwiftExampleTests.swift", "")
 
     expect("import CoreLocation" not in all_source, "first-party Swift should not import unused location APIs")
     expect(
@@ -232,6 +234,12 @@ def check_first_party_swift():
     expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
     expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
            "ViewController should restrict artwork loading to HTTPS mzstatic.com URLs")
+    expect("@testable import SwiftExample" in tests, "SwiftExampleTests should import app code testably")
+    expect("testSafeArtworkURLAcceptsHTTPSMZStaticHosts" in tests, "SwiftExampleTests should cover allowed artwork URLs")
+    expect("testSafeArtworkURLRejectsUntrustedSchemesAndHosts" in tests, "SwiftExampleTests should cover rejected artwork URLs")
+    expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
+    expect("XCTAssert(true" not in tests and "testPerformanceExample" not in tests,
+           "SwiftExampleTests should replace generated placeholder tests")
     expect("if let imageView = cell.imageView" in view, "ViewController should guard image-view styling")
     expect("if let resultsArray = results[\"results\"] as? NSArray" in view, "ViewController should optional-cast result arrays")
     expect("self.appsTableView?.reloadData()" in view, "ViewController should reload the table view safely")
@@ -245,6 +253,7 @@ def check_docs():
     changes = read_text("CHANGES.md")
     plan = read_text("docs/plans/2026-06-08-swift-sample-baseline.md")
     artwork_plan = read_text("docs/plans/2026-06-08-artwork-url-boundary.md")
+    artwork_tests_plan = read_text("docs/plans/2026-06-08-artwork-url-tests.md")
     table_index_plan = read_text("docs/plans/2026-06-08-table-index-guard.md")
     gitignore = read_text(".gitignore")
 
@@ -264,13 +273,18 @@ def check_docs():
     expect("public HTTPS iTunes" in security, "SECURITY should call out the public HTTPS endpoint boundary")
     expect("mzstatic.com" in readme and "mzstatic.com" in vision and "mzstatic.com" in security,
            "docs should describe the artwork URL host boundary")
+    expect("artwork URL tests" in readme, "README should mention artwork URL tests")
+    expect("artwork URL tests" in vision, "VISION should mention artwork URL tests")
+    expect("artwork URL tests" in security, "SECURITY should mention artwork URL tests")
     expect("forced JSON" in changes, "CHANGES should mention forced JSON hardening")
     expect("artwork URL" in changes and "mzstatic.com" in changes, "CHANGES should mention artwork URL hardening")
+    expect("artwork URL tests" in changes, "CHANGES should mention artwork URL tests")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in artwork_plan, "artwork URL plan should be marked completed")
+    expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
     expect("status: completed" in table_index_plan, "table index plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):

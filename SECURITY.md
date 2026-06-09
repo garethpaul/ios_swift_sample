@@ -28,7 +28,7 @@ Helpful reports include:
 - The app is a legacy Swift networking sample that should stay on the documented public HTTPS iTunes Search API unless endpoint changes receive separate review.
 - No credentials are required for the current sample. Do not commit API keys, tokens, private endpoints, signing material, `.env` files, or machine-local Xcode configuration.
 - URL construction, connection failure handling, JSON parsing, table rendering, and artwork loading should avoid forced unwraps and should return an empty or partially rendered state when data is malformed.
-- Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts.
+- Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
