@@ -10,6 +10,8 @@
   and network activity indicator changes.
 - Added result array tests for accepted API arrays and malformed payloads that
   should clear stale table data.
+- Moved artwork image fetches into an async artwork loader that clears reused
+  image views and applies images only to matching visible cells.
 
 ## 2026-06-08
 

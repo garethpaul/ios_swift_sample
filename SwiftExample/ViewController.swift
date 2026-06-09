@@ -30,11 +30,11 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         if indexPath.row < self.tableData.count {
             if let rowData = self.tableData[indexPath.row] as? NSDictionary {
                 cell.textLabel?.text = rowData["trackName"] as? String
+                cell.imageView?.image = nil
 
                 if let urlString = rowData["artworkUrl60"] as? String,
-                    imgURL = safeArtworkURLFromString(urlString),
-                    imgData = NSData(contentsOfURL: imgURL) {
-                        cell.imageView?.image = UIImage(data: imgData)
+                    imgURL = safeArtworkURLFromString(urlString) {
+                        loadArtworkFromURL(imgURL, forCell: cell, tableView: tableView, indexPath: indexPath)
                 }
             }
         }
@@ -65,6 +65,23 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         }
 
         return nil
+    }
+
+    func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+            guard let imgData = NSData(contentsOfURL: imgURL),
+                image = UIImage(data: imgData) else {
+                    return
+            }
+
+            dispatch_async(dispatch_get_main_queue()) {
+                if let visibleIndexPath = tableView.indexPathForCell(cell)
+                    where visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row {
+                        cell.imageView?.image = image
+                        cell.setNeedsLayout()
+                }
+            }
+        }
     }
     
     func didRecieveAPIResults(results: NSDictionary) {

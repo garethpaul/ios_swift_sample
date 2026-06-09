@@ -111,6 +111,7 @@ def check_required_files():
         "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-result-array-tests.md",
         "docs/plans/2026-06-09-ui-result-main-thread.md",
+        "docs/plans/2026-06-09-async-artwork-loading.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -242,6 +243,17 @@ def check_first_party_swift():
     expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
     expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
            "ViewController should restrict artwork loading to HTTPS mzstatic.com URLs")
+    expect("cell.imageView?.image = nil" in view,
+           "ViewController should clear reused artwork image views before async artwork loading")
+    expect("func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath)" in view,
+           "ViewController should keep asynchronous artwork loading in a helper")
+    expect("loadArtworkFromURL(imgURL, forCell: cell, tableView: tableView, indexPath: indexPath)" in view,
+           "ViewController should route validated artwork URLs through the async loader")
+    expect("dispatch_get_global_queue" in view and "dispatch_get_main_queue()" in view,
+           "ViewController should fetch artwork off the main queue and update UI on the main queue")
+    expect("tableView.indexPathForCell(cell)" in view and
+           "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view,
+           "ViewController should only apply async artwork to cells still representing the same index path")
     expect("@testable import SwiftExample" in tests, "SwiftExampleTests should import app code testably")
     expect("testSafeArtworkURLAcceptsHTTPSMZStaticHosts" in tests, "SwiftExampleTests should cover allowed artwork URLs")
     expect("testSafeArtworkURLRejectsUntrustedSchemesAndHosts" in tests, "SwiftExampleTests should cover rejected artwork URLs")
@@ -278,6 +290,7 @@ def check_docs():
     make_gates_plan = read_text("docs/plans/2026-06-09-make-gate-aliases.md")
     result_array_tests_plan = read_text("docs/plans/2026-06-09-result-array-tests.md")
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
+    async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -296,6 +309,7 @@ def check_docs():
         expect("failure" in lowered, "{} should document network or JSON failure handling".format(text_name))
         expect("main thread" in lowered, "{} should document main-thread UI result handling".format(text_name))
         expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
+        expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -320,6 +334,7 @@ def check_docs():
     expect("result array tests" in changes.lower(), "CHANGES should mention result array tests")
     expect("response buffer" in changes, "CHANGES should mention API response buffer cleanup")
     expect("main-thread" in changes, "CHANGES should mention main-thread UI result handling")
+    expect("async artwork" in changes.lower(), "CHANGES should mention async artwork loading")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
@@ -331,6 +346,7 @@ def check_docs():
     expect("status: completed" in make_gates_plan, "make gate aliases plan should be marked completed")
     expect("status: completed" in result_array_tests_plan, "result array tests plan should be marked completed")
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
+    expect("status: completed" in async_artwork_plan, "async artwork loading plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
