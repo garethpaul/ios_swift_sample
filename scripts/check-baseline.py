@@ -108,6 +108,7 @@ def check_required_files():
         "docs/plans/2026-06-08-artwork-url-tests.md",
         "docs/readme-overview.svg",
         "docs/plans/2026-06-09-api-completion-cleanup.md",
+        "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-result-array-tests.md",
         "docs/plans/2026-06-09-ui-result-main-thread.md",
         "SwiftExample.xcodeproj/project.pbxproj",
@@ -274,9 +275,14 @@ def check_docs():
     artwork_tests_plan = read_text("docs/plans/2026-06-08-artwork-url-tests.md")
     table_index_plan = read_text("docs/plans/2026-06-08-table-index-guard.md")
     completion_cleanup_plan = read_text("docs/plans/2026-06-09-api-completion-cleanup.md")
+    make_gates_plan = read_text("docs/plans/2026-06-09-make-gate-aliases.md")
     result_array_tests_plan = read_text("docs/plans/2026-06-09-result-array-tests.md")
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     gitignore = read_text(".gitignore")
+    makefile = read_text("Makefile")
+
+    expect(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
+           "Makefile should expose lint, test, build, and check verification gates")
 
     for text_name, text in (
         ("README.md", readme),
@@ -291,6 +297,12 @@ def check_docs():
         expect("main thread" in lowered, "{} should document main-thread UI result handling".format(text_name))
         expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
 
+    expect("make lint" in readme and "make test" in readme and "make build" in readme,
+           "README should document the standard local verification gates")
+    expect("make lint" in vision and "make test" in vision and "make build" in vision,
+           "VISION should document the standard local verification gates")
+    expect("make lint" in changes and "make test" in changes and "make build" in changes,
+           "CHANGES should mention the standard local verification gates")
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("scripts/check-baseline.py" in vision, "VISION should name the baseline checker")
     expect("public HTTPS iTunes" in security, "SECURITY should call out the public HTTPS endpoint boundary")
@@ -316,6 +328,7 @@ def check_docs():
     expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
     expect("status: completed" in table_index_plan, "table index plan should be marked completed")
     expect("status: completed" in completion_cleanup_plan, "API completion cleanup plan should be marked completed")
+    expect("status: completed" in make_gates_plan, "make gate aliases plan should be marked completed")
     expect("status: completed" in result_array_tests_plan, "result array tests plan should be marked completed")
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
 

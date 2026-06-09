@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added local `make lint`, `make test`, and `make build` gate aliases for the
+  static Swift sample baseline.
 - Centralized API completion so parsed and empty result paths clear the retained
   response buffer after notifying the delegate.
 - Routed API result UI updates through a main-thread guard before table reloads

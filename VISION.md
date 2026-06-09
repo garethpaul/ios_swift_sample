@@ -13,11 +13,12 @@ in [`README.md`](README.md).
 The goal is to keep the sample clear, runnable, and focused on the request to
 table-view flow.
 
-Current baseline: `make check` runs `scripts/check-baseline.py` to verify the
-legacy Xcode project shape, committed plists, storyboard and asset parsing,
-public HTTPS iTunes endpoint usage, URL/connection/JSON failure handling,
-API completion cleanup, main thread UI result handling, optional table rendering,
-result array tests, credential guardrails, and documentation.
+Current baseline: `make lint`, `make test`, `make build`, and `make check` run
+`scripts/check-baseline.py` to verify the legacy Xcode project shape, committed
+plists, storyboard and asset parsing, public HTTPS iTunes endpoint usage,
+URL/connection/JSON failure handling, API completion cleanup, main thread UI
+result handling, optional table rendering, result array tests, credential
+guardrails, and documentation.
 
 The current focus is:
 
@@ -35,6 +36,8 @@ Priority:
 - Keep artwork URL tests covering allowed hosts and rejected schemes/hosts
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials
+- Keep `make lint`, `make test`, `make build`, and `make check` available as
+  local verification gates
 - Maintain a small Xcode project structure
 
 Next priorities:
@@ -48,8 +51,9 @@ Contribution rules:
 
 - One PR = one focused networking, table view, build, or documentation change.
 - Verify the table renders after API or storyboard changes.
-- Run `make check` before pushing source, plist, storyboard, asset, Xcode
-  project, or security documentation changes.
+- Run `make lint`, `make test`, `make build`, and `make check` before pushing
+  source, plist, storyboard, asset, Xcode project, or security documentation
+  changes.
 - Keep credentials and signing files out of git.
 - Document endpoint and response-shape changes.
 - Keep parsed artwork URL host and scheme boundaries explicit.
