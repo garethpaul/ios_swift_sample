@@ -115,6 +115,7 @@ def check_required_files():
         "docs/plans/2026-06-09-async-artwork-loading.md",
         "docs/plans/2026-06-10-network-indicator-lifecycle.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
+        "docs/plans/2026-06-10-bounded-api-response.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -233,10 +234,32 @@ def check_first_party_swift():
     expect("completeWithResults(NSDictionary())" in api, "ApiController should return empty results on failure")
     expect("completeWithResults(jsonResult)" in api, "ApiController should deliver parsed JSON through completion helper")
     expect("self.data = NSMutableData()" in api, "ApiController should clear retained response data after completion")
+    expect("let maximumResponseSize = 1024 * 1024" in api, "ApiController should cap API responses at 1 MiB")
+    expect("var responseAccepted = false" in api and "var requestCompleted = false" in api,
+           "ApiController should track accepted responses and idempotent completion")
+    expect("if requestCompleted" in api and "requestCompleted = true" in api,
+           "ApiController should deliver at most one completion per request")
+    expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in api and
+           "httpResponse.statusCode >= 200 && httpResponse.statusCode < 300" in api and
+           "contentLength > Int64(maximumResponseSize)" in api and
+           'mimeType == "application/json" || mimeType == "text/javascript"' in api,
+           "ApiController should require successful bounded JSON-compatible responses")
+    expect("func canAppendResponseData(chunk: NSData) -> Bool" in api and
+           "chunk.length <= maximumResponseSize - data.length" in api,
+           "ApiController should bound streamed response accumulation")
+    expect(api.count("connection.cancel()") >= 2,
+           "ApiController should cancel rejected and oversized responses")
     expect("func connection(connection: NSURLConnection, didFailWithError error: NSError)" in api, "ApiController should implement the failure delegate")
     expect("func connection(connection: NSURLConnection, didReceiveResponse response: NSURLResponse)" in api, "ApiController should clear data on response")
     expect("try NSJSONSerialization.JSONObjectWithData" in api, "ApiController should parse JSON without try!")
     expect("catch {" in api, "ApiController should handle invalid JSON")
+    for token in (
+        "testAPIResponseValidationAcceptsBoundedJSONSuccess",
+        "testAPIResponseValidationRejectsStatusTypeAndOversize",
+        "testAPIResponseBufferRejectsOversizeChunks",
+        "testAPICompletionIsIdempotent",
+    ):
+        expect(token in tests, "SwiftExampleTests should cover {}".format(token))
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
     expect("override func viewWillDisappear(animated: Bool)" in view and
@@ -300,6 +323,7 @@ def check_docs():
     async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
     network_indicator_plan = read_text("docs/plans/2026-06-10-network-indicator-lifecycle.md")
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
+    bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -362,6 +386,8 @@ def check_docs():
     expect("status: completed" in network_indicator_plan, "network activity indicator lifecycle plan should be marked completed")
     expect("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
            "hosted validation plan should be marked completed")
+    expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
+           "bounded API response plan should be marked completed")
     expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and

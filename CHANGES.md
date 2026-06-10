@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added successful-status, JSON MIME, 1 MiB response-size, and idempotent
+  completion guards to the iTunes search client with focused assertions.
 - Added pinned, read-only macOS hosted project validation for `make check` and
   `SwiftExample.xcodeproj` parsing without API or artwork requests.
 - Cleared the network activity indicator when the results view disappears before
