@@ -30,6 +30,7 @@ Helpful reports include:
 - URL construction, connection failure handling, JSON parsing, table rendering, and artwork loading should avoid forced unwraps and should return an empty or partially rendered state when data is malformed.
 - API completion should clear the retained response buffer after delivering parsed or empty results.
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
+- The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.
 - Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path.
 - Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.

@@ -18,6 +18,11 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         UIApplication.sharedApplication().networkActivityIndicatorVisible = true
         api.searchItunesFor("Angry Birds")
     }
+
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        UIApplication.sharedApplication().networkActivityIndicatorVisible = false
+    }
     
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return tableData.count

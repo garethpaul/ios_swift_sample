@@ -112,6 +112,7 @@ def check_required_files():
         "docs/plans/2026-06-09-result-array-tests.md",
         "docs/plans/2026-06-09-ui-result-main-thread.md",
         "docs/plans/2026-06-09-async-artwork-loading.md",
+        "docs/plans/2026-06-10-network-indicator-lifecycle.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -236,6 +237,10 @@ def check_first_party_swift():
     expect("catch {" in api, "ApiController should handle invalid JSON")
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
+    expect("override func viewWillDisappear(animated: Bool)" in view and
+           "super.viewWillDisappear(animated)" in view and
+           "UIApplication.sharedApplication().networkActivityIndicatorVisible = false" in view,
+           "ViewController should clear the network activity indicator when the view disappears")
     expect("if indexPath.row < self.tableData.count" in view, "ViewController should guard table indexes before reading results")
     expect("if let rowData = self.tableData[indexPath.row] as? NSDictionary" in view, "ViewController should optional-cast table rows")
     expect("if let urlString = rowData[\"artworkUrl60\"] as? String" in view, "ViewController should optional-cast artwork URL")
@@ -291,6 +296,7 @@ def check_docs():
     result_array_tests_plan = read_text("docs/plans/2026-06-09-result-array-tests.md")
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
+    network_indicator_plan = read_text("docs/plans/2026-06-10-network-indicator-lifecycle.md")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -308,6 +314,7 @@ def check_docs():
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
         expect("failure" in lowered, "{} should document network or JSON failure handling".format(text_name))
         expect("main thread" in lowered, "{} should document main-thread UI result handling".format(text_name))
+        expect("network activity indicator" in lowered, "{} should document network activity indicator lifecycle".format(text_name))
         expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
         expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
 
@@ -334,6 +341,7 @@ def check_docs():
     expect("result array tests" in changes.lower(), "CHANGES should mention result array tests")
     expect("response buffer" in changes, "CHANGES should mention API response buffer cleanup")
     expect("main-thread" in changes, "CHANGES should mention main-thread UI result handling")
+    expect("network activity indicator" in changes.lower(), "CHANGES should mention network activity indicator lifecycle")
     expect("async artwork" in changes.lower(), "CHANGES should mention async artwork loading")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
@@ -347,6 +355,7 @@ def check_docs():
     expect("status: completed" in result_array_tests_plan, "result array tests plan should be marked completed")
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
     expect("status: completed" in async_artwork_plan, "async artwork loading plan should be marked completed")
+    expect("status: completed" in network_indicator_plan, "network activity indicator lifecycle plan should be marked completed")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))

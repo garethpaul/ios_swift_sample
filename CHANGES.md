@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-10
+
+- Cleared the network activity indicator when the results view disappears before
+  API completion.
+
 ## 2026-06-09
 
 - Added local `make lint`, `make test`, and `make build` gate aliases for the

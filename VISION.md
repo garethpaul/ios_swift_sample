@@ -17,8 +17,9 @@ Current baseline: `make lint`, `make test`, `make build`, and `make check` run
 `scripts/check-baseline.py` to verify the legacy Xcode project shape, committed
 plists, storyboard and asset parsing, public HTTPS iTunes endpoint usage,
 URL/connection/JSON failure handling, API completion cleanup, main thread UI
-result handling, optional table rendering, result array tests, async artwork
-loading, credential guardrails, and documentation.
+result handling, network activity indicator lifecycle, optional table rendering,
+result array tests, async artwork loading, credential guardrails, and
+documentation.
 
 The current focus is:
 
@@ -29,6 +30,7 @@ Priority:
   missing artwork from crashing the sample
 - Clear the retained response buffer after parsed or empty API completion
 - Keep API result UI updates on the main thread
+- Clear the network activity indicator when the results view disappears
 - Guard table indexes before reading parsed result rows
 - Keep result array tests covering accepted payloads and malformed payloads that
   clear stale table data
