@@ -67,6 +67,10 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline on hosts without the legacy Xcode toolchain, keeping the standard
   local gate commands available without claiming to replace Xcode verification.
+- Pinned `macos-15` GitHub Actions runs `make check` and parses
+  `SwiftExample.xcodeproj` with `xcodebuild -list`. This hosted validation does
+  not call the iTunes Search API, fetch artwork, run simulator interaction, or
+  use signing material.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

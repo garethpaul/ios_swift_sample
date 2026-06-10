@@ -98,6 +98,7 @@ def git_ls_files():
 def check_required_files():
     required = [
         ".gitignore",
+        ".github/workflows/check.yml",
         "CHANGES.md",
         "Makefile",
         "README.md",
@@ -113,6 +114,7 @@ def check_required_files():
         "docs/plans/2026-06-09-ui-result-main-thread.md",
         "docs/plans/2026-06-09-async-artwork-loading.md",
         "docs/plans/2026-06-10-network-indicator-lifecycle.md",
+        "docs/plans/2026-06-10-hosted-project-validation.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -297,6 +299,8 @@ def check_docs():
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
     network_indicator_plan = read_text("docs/plans/2026-06-10-network-indicator-lifecycle.md")
+    hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
+    workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -356,6 +360,13 @@ def check_docs():
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
     expect("status: completed" in async_artwork_plan, "async artwork loading plan should be marked completed")
     expect("status: completed" in network_indicator_plan, "network activity indicator lifecycle plan should be marked completed")
+    expect("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+           "hosted validation plan should be marked completed")
+    expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
+           "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
+           "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
+           "run: make check" in workflow,
+           "Check workflow should stay pinned, read-only, and bounded")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
@@ -379,7 +390,15 @@ def main():
     check_git_hygiene()
 
     if shutil.which("xcodebuild"):
-        print("xcodebuild is available; run a simulator build separately for legacy Swift validation.")
+        result = subprocess.run(
+            ["xcodebuild", "-list", "-project", "SwiftExample.xcodeproj"],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        expect(result.returncode == 0,
+               "xcodebuild could not parse SwiftExample.xcodeproj: {}".format(result.stderr.strip()))
     else:
         print("xcodebuild unavailable; skipping legacy iOS build/test and using static baseline checks.")
 

@@ -41,6 +41,8 @@ Priority:
 - Avoid hardcoded private endpoints or credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
+- Keep hosted project validation pinned and read-only on macOS through
+  `SwiftExample.xcodeproj` parsing and `make check`
 - Maintain a small Xcode project structure
 
 Next priorities:
