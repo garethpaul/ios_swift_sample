@@ -32,6 +32,8 @@ Helpful reports include:
 - API responses should require a successful status and JSON-compatible MIME
   type, stay within a 1 MiB body limit, and deliver at most one completion when
   cancellation and failure callbacks overlap.
+- The active connection owns shared response state; starting a replacement
+  search cancels it and stale connection callbacks must be ignored.
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
 - The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.

@@ -1,6 +1,6 @@
 # Active API Connection
 
-status: planned
+status: completed
 
 ## Context
 
@@ -9,7 +9,7 @@ completion flag, but does not retain the `NSURLConnection` that owns that
 state. Starting another search before the first request finishes can allow old
 callbacks to append to or complete the new request.
 
-## Scope
+## Completed Scope
 
 - Retain the active connection and cancel it before starting a new search.
 - Ignore response, data, failure, and finish callbacks from non-active
@@ -27,3 +27,5 @@ callbacks to append to or complete the new request.
 - `make check`
 - `python3 -m py_compile scripts/check-baseline.py`
 - `git diff --check`
+- Mutation results: removing replacement cancellation or one stale callback
+  identity guard was rejected by `scripts/check-baseline.py`.

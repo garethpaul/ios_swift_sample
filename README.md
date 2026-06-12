@@ -57,6 +57,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - API responses must use a successful status and JSON-compatible MIME type and
   remain within a 1 MiB declared and streamed body limit. Cancellation and
   failure callbacks deliver at most one completion.
+- Starting a new search cancels the previous active connection, and stale
+  callbacks cannot mutate or complete the replacement request.
 - API completion clears the retained response buffer after delivering parsed or empty results.
 - API results hop back to the main thread before updating table data, reloading the table, or clearing the network activity indicator.
 - The network activity indicator is also cleared when the results view disappears before completion.
