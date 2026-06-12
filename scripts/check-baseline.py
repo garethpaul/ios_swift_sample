@@ -98,6 +98,7 @@ def git_ls_files():
 def check_required_files():
     required = [
         ".gitignore",
+        ".github/workflows/check.yml",
         "CHANGES.md",
         ".github/workflows/check.yml",
         "Makefile",
@@ -115,6 +116,8 @@ def check_required_files():
         "docs/plans/2026-06-09-async-artwork-loading.md",
         "docs/plans/2026-06-10-network-indicator-lifecycle.md",
         "docs/plans/2026-06-10-ci-baseline.md",
+        "docs/plans/2026-06-10-hosted-project-validation.md",
+        "docs/plans/2026-06-10-bounded-api-response.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -233,10 +236,32 @@ def check_first_party_swift():
     expect("completeWithResults(NSDictionary())" in api, "ApiController should return empty results on failure")
     expect("completeWithResults(jsonResult)" in api, "ApiController should deliver parsed JSON through completion helper")
     expect("self.data = NSMutableData()" in api, "ApiController should clear retained response data after completion")
+    expect("let maximumResponseSize = 1024 * 1024" in api, "ApiController should cap API responses at 1 MiB")
+    expect("var responseAccepted = false" in api and "var requestCompleted = false" in api,
+           "ApiController should track accepted responses and idempotent completion")
+    expect("if requestCompleted" in api and "requestCompleted = true" in api,
+           "ApiController should deliver at most one completion per request")
+    expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in api and
+           "httpResponse.statusCode >= 200 && httpResponse.statusCode < 300" in api and
+           "contentLength > Int64(maximumResponseSize)" in api and
+           'mimeType == "application/json" || mimeType == "text/javascript"' in api,
+           "ApiController should require successful bounded JSON-compatible responses")
+    expect("func canAppendResponseData(chunk: NSData) -> Bool" in api and
+           "chunk.length <= maximumResponseSize - data.length" in api,
+           "ApiController should bound streamed response accumulation")
+    expect(api.count("connection.cancel()") >= 2,
+           "ApiController should cancel rejected and oversized responses")
     expect("func connection(connection: NSURLConnection, didFailWithError error: NSError)" in api, "ApiController should implement the failure delegate")
     expect("func connection(connection: NSURLConnection, didReceiveResponse response: NSURLResponse)" in api, "ApiController should clear data on response")
     expect("try NSJSONSerialization.JSONObjectWithData" in api, "ApiController should parse JSON without try!")
     expect("catch {" in api, "ApiController should handle invalid JSON")
+    for token in (
+        "testAPIResponseValidationAcceptsBoundedJSONSuccess",
+        "testAPIResponseValidationRejectsStatusTypeAndOversize",
+        "testAPIResponseBufferRejectsOversizeChunks",
+        "testAPICompletionIsIdempotent",
+    ):
+        expect(token in tests, "SwiftExampleTests should cover {}".format(token))
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
     expect("override func viewWillDisappear(animated: Bool)" in view and
@@ -300,7 +325,9 @@ def check_docs():
     async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
     network_indicator_plan = read_text("docs/plans/2026-06-10-network-indicator-lifecycle.md")
     ci_plan = read_text("docs/plans/2026-06-10-ci-baseline.md")
-    ci_workflow = read_text(".github/workflows/check.yml")
+    hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
+    bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
+    workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -352,10 +379,6 @@ def check_docs():
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
-    expect("actions/setup-python@v5" in ci_workflow and
-           'python-version: "3.12"' in ci_workflow and
-           "make check" in ci_workflow,
-           "GitHub Actions workflow should install Python 3.12 and run make check")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in artwork_plan, "artwork URL plan should be marked completed")
     expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
@@ -368,6 +391,21 @@ def check_docs():
     expect("status: completed" in network_indicator_plan, "network activity indicator lifecycle plan should be marked completed")
     expect("status: completed" in ci_plan and "make check" in ci_plan,
            "CI baseline plan should be marked completed with make check verification")
+    expect("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+           "hosted validation plan should be marked completed")
+    expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
+           "bounded API response plan should be marked completed")
+    expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
+           "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
+           "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
+           "persist-credentials: false" in workflow and
+           "run: make check" in workflow,
+           "Check workflow should stay pinned, read-only, and bounded")
+    expect(read_text(".github/CODEOWNERS").strip() == "* @garethpaul",
+           "CODEOWNERS should assign repository-wide ownership")
+    workflow_files = sorted(str(path.relative_to(ROOT)) for path in rel(".github/workflows").rglob("*") if path.is_file())
+    expect(workflow_files == [".github/workflows/check.yml"],
+           "check.yml should be the sole hosted workflow")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
@@ -391,7 +429,15 @@ def main():
     check_git_hygiene()
 
     if shutil.which("xcodebuild"):
-        print("xcodebuild is available; run a simulator build separately for legacy Swift validation.")
+        result = subprocess.run(
+            ["xcodebuild", "-list", "-project", "SwiftExample.xcodeproj"],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        expect(result.returncode == 0,
+               "xcodebuild could not parse SwiftExample.xcodeproj: {}".format(result.stderr.strip()))
     else:
         print("xcodebuild unavailable; skipping legacy iOS build/test and using static baseline checks.")
 

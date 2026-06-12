@@ -54,6 +54,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Open `SwiftExample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The sample queries the public HTTPS iTunes Search API and renders the JSON `results` array in a table view.
 - Network, URL, JSON, missing result, and missing artwork failures should return an empty or partially rendered table state instead of crashing.
+- API responses must use a successful status and JSON-compatible MIME type and
+  remain within a 1 MiB declared and streamed body limit. Cancellation and
+  failure callbacks deliver at most one completion.
 - API completion clears the retained response buffer after delivering parsed or empty results.
 - API results hop back to the main thread before updating table data, reloading the table, or clearing the network activity indicator.
 - The network activity indicator is also cleared when the results view disappears before completion.
@@ -67,8 +70,10 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline on hosts without the legacy Xcode toolchain, keeping the standard
   local gate commands available without claiming to replace Xcode verification.
-- GitHub Actions runs the same static `make check` baseline with Python 3.12
-  for pushes and pull requests.
+- Pinned `macos-15` GitHub Actions runs `make check` and parses
+  `SwiftExample.xcodeproj` with `xcodebuild -list`. This hosted validation does
+  not call the iTunes Search API, fetch artwork, run simulator interaction, or
+  use signing material.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

@@ -1,15 +1,19 @@
 name: Check
-
 on:
   pull_request:
   push:
-
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  baseline:
+    runs-on: macos-15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
-          python-version: "3.12"
+          persist-credentials: false
       - run: make check

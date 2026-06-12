@@ -9,7 +9,57 @@
 import XCTest
 @testable import SwiftExample
 
+private class RecordingAPIDelegate: APIControllerProtocol {
+    var completionCount = 0
+
+    func didRecieveAPIResults(results: NSDictionary) {
+        completionCount += 1
+    }
+}
+
 class SwiftExampleTests: XCTestCase {
+
+    func response(statusCode: Int, mimeType: String, contentLength: Int) -> NSHTTPURLResponse {
+        return NSHTTPURLResponse(
+            URL: NSURL(string: "https://itunes.apple.com/search")!,
+            statusCode: statusCode,
+            HTTPVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": mimeType, "Content-Length": "\(contentLength)"]
+        )!
+    }
+
+    func testAPIResponseValidationAcceptsBoundedJSONSuccess() {
+        let api = APIController()
+        XCTAssertTrue(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024)))
+        XCTAssertTrue(api.isAcceptableResponse(response(200, mimeType: "text/javascript", contentLength: 1024)))
+    }
+
+    func testAPIResponseValidationRejectsStatusTypeAndOversize() {
+        let api = APIController()
+        XCTAssertFalse(api.isAcceptableResponse(response(500, mimeType: "application/json", contentLength: 1024)))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "text/html", contentLength: 1024)))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: api.maximumResponseSize + 1)))
+    }
+
+    func testAPIResponseBufferRejectsOversizeChunks() {
+        let api = APIController()
+        api.responseAccepted = true
+        api.data = NSMutableData(length: api.maximumResponseSize - 1)!
+
+        XCTAssertTrue(api.canAppendResponseData(NSData(length: 1)))
+        XCTAssertFalse(api.canAppendResponseData(NSData(length: 2)))
+    }
+
+    func testAPICompletionIsIdempotent() {
+        let api = APIController()
+        let delegate = RecordingAPIDelegate()
+        api.delegate = delegate
+
+        api.completeWithResults(NSDictionary())
+        api.completeWithResults(NSDictionary())
+
+        XCTAssertEqual(delegate.completionCount, 1)
+    }
 
     func testSafeArtworkURLAcceptsHTTPSMZStaticHosts() {
         let controller = SearchResultsViewController()

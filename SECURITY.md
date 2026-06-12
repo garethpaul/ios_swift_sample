@@ -29,14 +29,18 @@ Helpful reports include:
 - No credentials are required for the current sample. Do not commit API keys, tokens, private endpoints, signing material, `.env` files, or machine-local Xcode configuration.
 - URL construction, connection failure handling, JSON parsing, table rendering, and artwork loading should avoid forced unwraps and should return an empty or partially rendered state when data is malformed.
 - API completion should clear the retained response buffer after delivering parsed or empty results.
+- API responses should require a successful status and JSON-compatible MIME
+  type, stay within a 1 MiB body limit, and deliver at most one completion when
+  cancellation and failure callbacks overlap.
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
 - The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.
 - Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path.
 - Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
-- GitHub Actions runs the static `make check` baseline with Python 3.12 for
-  pushes and pull requests.
+- The pinned macOS workflow is read-only and parses project metadata without
+  calling the iTunes Search API, fetching artwork, running simulator
+  interaction, or using signing material.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.

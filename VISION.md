@@ -31,6 +31,7 @@ Priority:
 - Keep malformed URLs, failed connections, invalid JSON, missing results, and
   missing artwork from crashing the sample
 - Clear the retained response buffer after parsed or empty API completion
+- Bound successful JSON-compatible API responses to 1 MiB and one completion
 - Keep API result UI updates on the main thread
 - Clear the network activity indicator when the results view disappears
 - Guard table indexes before reading parsed result rows
@@ -43,7 +44,8 @@ Priority:
 - Avoid hardcoded private endpoints or credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep GitHub Actions aligned with local static verification
+- Keep hosted project validation pinned and read-only on macOS through
+  `SwiftExample.xcodeproj` parsing and `make check`
 - Maintain a small Xcode project structure
 
 Next priorities:
