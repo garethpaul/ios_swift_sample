@@ -38,9 +38,9 @@ Helpful reports include:
 - Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path.
 - Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
-- The pinned macOS workflow is read-only and parses project metadata without
-  calling the iTunes Search API, fetching artwork, running simulator
-  interaction, or using signing material.
+- The pinned macOS GitHub Actions workflow is read-only and parses project
+  metadata without calling the iTunes Search API, fetching artwork, running
+  simulator interaction, or using signing material.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
