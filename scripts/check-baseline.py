@@ -34,6 +34,14 @@ def read_text(path):
     return target.read_text(encoding="utf-8")
 
 
+def markdown_section(text, heading):
+    match = re.search(
+        r"(?ms)^## {}\s*$\n(.*?)(?=^## |\Z)".format(re.escape(heading)),
+        text,
+    )
+    return match.group(1).strip() if match else ""
+
+
 def parse_xml(path):
     target = rel(path)
     expect(target.exists(), "{} is missing".format(path))
@@ -417,8 +425,36 @@ def check_docs():
            "hosted validation plan should be marked completed")
     expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
            "bounded API response plan should be marked completed")
-    expect("status: completed" in active_connection_plan and "mutation" in active_connection_plan.lower(),
-           "active API connection plan should record completed mutation verification")
+    active_connection_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", active_connection_plan
+    )
+    active_connection_work = markdown_section(active_connection_plan, "Work Completed")
+    active_connection_verification = markdown_section(
+        active_connection_plan, "Verification Completed"
+    )
+    expect(active_connection_status == ["completed"] and bool(active_connection_work),
+           "active API connection plan should record one completed status and completed work")
+    expect(bool(active_connection_verification) and not re.search(
+        r"(?i)\b(?:pending|todo|tbd|not run)\b", active_connection_verification
+    ), "active API connection plan should record finished verification without pending markers")
+    for evidence in [
+        "make check",
+        "make lint",
+        "make test",
+        "make build",
+        "python3 -m py_compile scripts/check-baseline.py",
+        "git diff --check",
+        "27395635063",
+        "27395639989",
+        "27395656424",
+        "27402323954",
+        "ffd99e770c2fcf3923af8a527b60c3f58274b52a",
+        "5a179a2125db621355b8a9e062a9de20d1ac875d",
+        "activeConnection?.cancel()",
+        "if !isActiveConnection(connection)",
+    ]:
+        expect(evidence in active_connection_verification,
+               "active API connection plan should preserve verification evidence: {}".format(evidence))
     expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
