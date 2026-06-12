@@ -67,6 +67,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline on hosts without the legacy Xcode toolchain, keeping the standard
   local gate commands available without claiming to replace Xcode verification.
+- GitHub Actions runs the same static `make check` baseline with Python 3.12
+  for pushes and pull requests.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -91,6 +93,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
 - See `docs/plans/2026-06-09-async-artwork-loading.md` for the async artwork loading guardrail.
 - See `docs/plans/2026-06-10-network-indicator-lifecycle.md` for the network activity indicator lifecycle guardrail.
+- See `docs/plans/2026-06-10-ci-baseline.md` for the GitHub Actions static
+  baseline.
 
 ## Contributing
 

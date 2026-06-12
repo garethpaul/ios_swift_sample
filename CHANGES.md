@@ -4,6 +4,8 @@
 
 - Cleared the network activity indicator when the results view disappears before
   API completion.
+- Added a GitHub Actions workflow that runs the static `make check` baseline
+  with Python 3.12 for pushes and pull requests.
 
 ## 2026-06-09
 

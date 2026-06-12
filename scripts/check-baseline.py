@@ -99,6 +99,7 @@ def check_required_files():
     required = [
         ".gitignore",
         "CHANGES.md",
+        ".github/workflows/check.yml",
         "Makefile",
         "README.md",
         "SECURITY.md",
@@ -113,6 +114,7 @@ def check_required_files():
         "docs/plans/2026-06-09-ui-result-main-thread.md",
         "docs/plans/2026-06-09-async-artwork-loading.md",
         "docs/plans/2026-06-10-network-indicator-lifecycle.md",
+        "docs/plans/2026-06-10-ci-baseline.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -297,6 +299,8 @@ def check_docs():
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
     network_indicator_plan = read_text("docs/plans/2026-06-10-network-indicator-lifecycle.md")
+    ci_plan = read_text("docs/plans/2026-06-10-ci-baseline.md")
+    ci_workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -317,6 +321,7 @@ def check_docs():
         expect("network activity indicator" in lowered, "{} should document network activity indicator lifecycle".format(text_name))
         expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
         expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
+        expect("github actions" in lowered, "{} should document hosted static verification".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -343,9 +348,14 @@ def check_docs():
     expect("main-thread" in changes, "CHANGES should mention main-thread UI result handling")
     expect("network activity indicator" in changes.lower(), "CHANGES should mention network activity indicator lifecycle")
     expect("async artwork" in changes.lower(), "CHANGES should mention async artwork loading")
+    expect("GitHub Actions" in changes, "CHANGES should mention hosted static verification")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
+    expect("actions/setup-python@v5" in ci_workflow and
+           'python-version: "3.12"' in ci_workflow and
+           "make check" in ci_workflow,
+           "GitHub Actions workflow should install Python 3.12 and run make check")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in artwork_plan, "artwork URL plan should be marked completed")
     expect("status: completed" in artwork_tests_plan, "artwork URL tests plan should be marked completed")
@@ -356,6 +366,8 @@ def check_docs():
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
     expect("status: completed" in async_artwork_plan, "async artwork loading plan should be marked completed")
     expect("status: completed" in network_indicator_plan, "network activity indicator lifecycle plan should be marked completed")
+    expect("status: completed" in ci_plan and "make check" in ci_plan,
+           "CI baseline plan should be marked completed with make check verification")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
