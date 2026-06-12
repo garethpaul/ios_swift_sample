@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-12
+
+- Bound shared response state to one active connection, canceling replaced
+  searches and ignoring callbacks from stale connections.
+
 ## 2026-06-10
 
 - Added successful-status, JSON MIME, 1 MiB response-size, and idempotent

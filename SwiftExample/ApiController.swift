@@ -17,9 +17,12 @@ class APIController: NSObject {
     var data: NSMutableData = NSMutableData()
     var responseAccepted = false
     var requestCompleted = false
+    var activeConnection: NSURLConnection?
     var delegate: APIControllerProtocol?
     
     func searchItunesFor(searchTerm: String) {
+        activeConnection?.cancel()
+        activeConnection = nil
         requestCompleted = false
         responseAccepted = false
         data = NSMutableData()
@@ -30,6 +33,7 @@ class APIController: NSObject {
             if let url = NSURL(string: urlPath) {
                 let request: NSURLRequest = NSURLRequest(URL: url)
                 if let connection = NSURLConnection(request: request, delegate: self, startImmediately: false) {
+                    activeConnection = connection
                     connection.start()
                     return
                 }
@@ -45,6 +49,7 @@ class APIController: NSObject {
         }
 
         requestCompleted = true
+        activeConnection = nil
         delegate?.didRecieveAPIResults(results)
         self.data = NSMutableData()
     }
@@ -70,14 +75,30 @@ class APIController: NSObject {
     func canAppendResponseData(chunk: NSData) -> Bool {
         return responseAccepted && chunk.length <= maximumResponseSize - data.length
     }
+
+    func isActiveConnection(connection: NSURLConnection) -> Bool {
+        if let activeConnection = activeConnection {
+            return connection === activeConnection
+        }
+
+        return false
+    }
     
     
     func connection(connection: NSURLConnection, didFailWithError error: NSError) {
+        if !isActiveConnection(connection) {
+            return
+        }
+
         completeWithResults(NSDictionary())
     }
     
     
     func connection(connection: NSURLConnection, didReceiveResponse response: NSURLResponse) {
+        if !isActiveConnection(connection) {
+            return
+        }
+
         self.data = NSMutableData()
         responseAccepted = isAcceptableResponse(response)
         if !responseAccepted {
@@ -87,6 +108,10 @@ class APIController: NSObject {
     }
     
     func connection(connection: NSURLConnection, didReceiveData data: NSData) {
+        if !isActiveConnection(connection) {
+            return
+        }
+
         if !canAppendResponseData(data) {
             connection.cancel()
             completeWithResults(NSDictionary())
@@ -97,6 +122,10 @@ class APIController: NSObject {
     }
     
     func connectionDidFinishLoading(connection: NSURLConnection) {
+        if !isActiveConnection(connection) {
+            return
+        }
+
         if !responseAccepted {
             completeWithResults(NSDictionary())
             return

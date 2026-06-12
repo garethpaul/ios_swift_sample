@@ -32,6 +32,7 @@ Priority:
   missing artwork from crashing the sample
 - Clear the retained response buffer after parsed or empty API completion
 - Bound successful JSON-compatible API responses to 1 MiB and one completion
+- Keep shared response state owned by one active connection and ignore stale callbacks
 - Keep API result UI updates on the main thread
 - Clear the network activity indicator when the results view disappears
 - Guard table indexes before reading parsed result rows

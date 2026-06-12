@@ -118,6 +118,7 @@ def check_required_files():
         "docs/plans/2026-06-10-ci-baseline.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-api-response.md",
+        "docs/plans/2026-06-12-active-api-connection.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -239,6 +240,25 @@ def check_first_party_swift():
     expect("let maximumResponseSize = 1024 * 1024" in api, "ApiController should cap API responses at 1 MiB")
     expect("var responseAccepted = false" in api and "var requestCompleted = false" in api,
            "ApiController should track accepted responses and idempotent completion")
+    cancel_active_index = api.find("activeConnection?.cancel()")
+    clear_before_search_index = api.find("activeConnection = nil", cancel_active_index)
+    assign_connection_index = api.find("activeConnection = connection", clear_before_search_index)
+    start_connection_index = api.find("connection.start()", assign_connection_index)
+    complete_method_index = api.find("func completeWithResults(results: NSDictionary)")
+    clear_on_completion_index = api.find("activeConnection = nil", complete_method_index)
+    delegate_completion_index = api.find("delegate?.didRecieveAPIResults(results)", complete_method_index)
+    expect("var activeConnection: NSURLConnection?" in api and
+           cancel_active_index != -1 and clear_before_search_index != -1 and
+           assign_connection_index != -1 and start_connection_index != -1 and
+           cancel_active_index < clear_before_search_index < assign_connection_index < start_connection_index and
+           clear_on_completion_index != -1 and delegate_completion_index != -1 and
+           clear_on_completion_index < delegate_completion_index,
+           "ApiController should cancel, assign, and clear active request ownership in order")
+    expect("func isActiveConnection(connection: NSURLConnection) -> Bool" in api and
+           "if let activeConnection = activeConnection" in api and
+           "return connection === activeConnection" in api and
+           api.count("if !isActiveConnection(connection)") == 4,
+           "ApiController should ignore every delegate callback from non-active connections")
     expect("if requestCompleted" in api and "requestCompleted = true" in api,
            "ApiController should deliver at most one completion per request")
     expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in api and
@@ -327,6 +347,7 @@ def check_docs():
     ci_plan = read_text("docs/plans/2026-06-10-ci-baseline.md")
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
+    active_connection_plan = read_text("docs/plans/2026-06-12-active-api-connection.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -349,6 +370,7 @@ def check_docs():
         expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
         expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
         expect("github actions" in lowered, "{} should document hosted static verification".format(text_name))
+        expect("active connection" in lowered, "{} should document overlapping request ownership".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -395,6 +417,8 @@ def check_docs():
            "hosted validation plan should be marked completed")
     expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
            "bounded API response plan should be marked completed")
+    expect("status: completed" in active_connection_plan and "mutation" in active_connection_plan.lower(),
+           "active API connection plan should record completed mutation verification")
     expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
