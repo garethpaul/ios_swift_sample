@@ -20,6 +20,8 @@ URL/connection/JSON failure handling, API completion cleanup, main thread UI
 result handling, network activity indicator lifecycle, optional table rendering,
 result array tests, async artwork loading, credential guardrails, and
 documentation.
+GitHub Actions runs the same static baseline with Python 3.12 for pushes and
+pull requests.
 
 The current focus is:
 

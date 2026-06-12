@@ -98,6 +98,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
 - See `docs/plans/2026-06-09-async-artwork-loading.md` for the async artwork loading guardrail.
 - See `docs/plans/2026-06-10-network-indicator-lifecycle.md` for the network activity indicator lifecycle guardrail.
+- See `docs/plans/2026-06-10-ci-baseline.md` for the GitHub Actions static
+  baseline.
 
 ## Contributing
 

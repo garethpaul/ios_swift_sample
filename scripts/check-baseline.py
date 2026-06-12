@@ -100,6 +100,7 @@ def check_required_files():
         ".gitignore",
         ".github/workflows/check.yml",
         "CHANGES.md",
+        ".github/workflows/check.yml",
         "Makefile",
         "README.md",
         "SECURITY.md",
@@ -114,6 +115,7 @@ def check_required_files():
         "docs/plans/2026-06-09-ui-result-main-thread.md",
         "docs/plans/2026-06-09-async-artwork-loading.md",
         "docs/plans/2026-06-10-network-indicator-lifecycle.md",
+        "docs/plans/2026-06-10-ci-baseline.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-api-response.md",
         "SwiftExample.xcodeproj/project.pbxproj",
@@ -322,6 +324,7 @@ def check_docs():
     ui_result_plan = read_text("docs/plans/2026-06-09-ui-result-main-thread.md")
     async_artwork_plan = read_text("docs/plans/2026-06-09-async-artwork-loading.md")
     network_indicator_plan = read_text("docs/plans/2026-06-10-network-indicator-lifecycle.md")
+    ci_plan = read_text("docs/plans/2026-06-10-ci-baseline.md")
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
     workflow = read_text(".github/workflows/check.yml")
@@ -345,6 +348,7 @@ def check_docs():
         expect("network activity indicator" in lowered, "{} should document network activity indicator lifecycle".format(text_name))
         expect("result array tests" in lowered, "{} should document result array tests".format(text_name))
         expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
+        expect("github actions" in lowered, "{} should document hosted static verification".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -371,6 +375,7 @@ def check_docs():
     expect("main-thread" in changes, "CHANGES should mention main-thread UI result handling")
     expect("network activity indicator" in changes.lower(), "CHANGES should mention network activity indicator lifecycle")
     expect("async artwork" in changes.lower(), "CHANGES should mention async artwork loading")
+    expect("GitHub Actions" in changes, "CHANGES should mention hosted static verification")
     expect("table index" in changes, "CHANGES should mention table index hardening")
     expect("shared project data" in changes, "CHANGES should mention shared Xcode scheme cleanup")
     expect("make check" in changes, "CHANGES should mention the new verification command")
@@ -384,6 +389,8 @@ def check_docs():
     expect("status: completed" in ui_result_plan, "UI result main-thread plan should be marked completed")
     expect("status: completed" in async_artwork_plan, "async artwork loading plan should be marked completed")
     expect("status: completed" in network_indicator_plan, "network activity indicator lifecycle plan should be marked completed")
+    expect("status: completed" in ci_plan and "make check" in ci_plan,
+           "CI baseline plan should be marked completed with make check verification")
     expect("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
            "hosted validation plan should be marked completed")
     expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
@@ -391,8 +398,14 @@ def check_docs():
     expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
+           "persist-credentials: false" in workflow and
            "run: make check" in workflow,
            "Check workflow should stay pinned, read-only, and bounded")
+    expect(read_text(".github/CODEOWNERS").strip() == "* @garethpaul",
+           "CODEOWNERS should assign repository-wide ownership")
+    workflow_files = sorted(str(path.relative_to(ROOT)) for path in rel(".github/workflows").rglob("*") if path.is_file())
+    expect(workflow_files == [".github/workflows/check.yml"],
+           "check.yml should be the sole hosted workflow")
 
     for pattern in ("DerivedData/", "xcuserdata/", "*.local.xcconfig", "*.secrets.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
