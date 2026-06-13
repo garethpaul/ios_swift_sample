@@ -127,6 +127,8 @@ def check_required_files():
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-api-response.md",
         "docs/plans/2026-06-12-active-api-connection.md",
+        "docs/plans/2026-06-13-artwork-result-identity-guard.md",
+        "docs/plans/2026-06-13-bounded-artwork-response.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -312,11 +314,32 @@ def check_first_party_swift():
            "ViewController should keep asynchronous artwork loading in a helper")
     expect("loadArtworkFromURL(imgURL, forCell: cell, tableView: tableView, indexPath: indexPath)" in view,
            "ViewController should route validated artwork URLs through the async loader")
+    expect("class ArtworkRequest: NSObject, NSURLConnectionDataDelegate" in view and
+           "let maximumResponseSize = 1024 * 1024" in view and
+           "timeoutInterval: 15" in view,
+           "ArtworkRequest should stream bounded artwork with a finite timeout")
+    expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in view and
+           "httpResponse.statusCode >= 200 && httpResponse.statusCode < 300" in view and
+           "response.URL where ArtworkRequest.isTrustedURL(responseURL)" in view and
+           "contentLength > Int64(maximumResponseSize)" in view and
+           'mimeType == "image/jpeg" || mimeType == "image/png"' in view,
+           "ArtworkRequest should require trusted successful bounded JPEG or PNG responses")
+    expect("func canAppendArtworkData(chunk: NSData) -> Bool" in view and
+           "chunk.length <= maximumResponseSize - data.length" in view and
+           view.count("connection.cancel()") >= 2,
+           "ArtworkRequest should stop rejected or oversized streamed bodies")
+    expect("func completeWithData(result: NSData?)" in view and
+           "if requestCompleted" in view and "requestCompleted = true" in view and
+           "completeWithData(NSData(data: data))" in view,
+           "ArtworkRequest should deliver accepted data at most once")
+    expect("NSData(contentsOfURL: imgURL)" not in view and
+           "ArtworkRequest(URL: imgURL" in view and "request.start()" in view,
+           "ViewController should replace unbounded artwork buffering with ArtworkRequest")
     expect("dispatch_get_global_queue" in view and "dispatch_get_main_queue()" in view,
            "ViewController should fetch artwork off the main queue and update UI on the main queue")
-    expect("tableView.indexPathForCell(cell)" in view and
+    expect("targetTableView.indexPathForCell(targetCell)" in view and
            "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view and
-           "currentArtworkURL = self.artworkURLForRow(indexPath)" in view and
+           "currentArtworkURL = controller.artworkURLForRow(indexPath)" in view and
            "currentArtworkURL.isEqual(imgURL)" in view,
            "ViewController should only apply async artwork to cells still representing the same current result")
     expect("@testable import SwiftExample" in tests, "SwiftExampleTests should import app code testably")
@@ -325,6 +348,15 @@ def check_first_party_swift():
     expect("testArtworkURLForRowTracksCurrentResultIdentity" in tests and
            "testArtworkURLForRowRejectsMissingAndUnsafeRows" in tests,
            "SwiftExampleTests should cover current-row artwork identity")
+    for token in (
+        "testArtworkResponseValidationAcceptsBoundedImages",
+        "testArtworkResponseValidationRejectsStatusTypeAndOversize",
+        "testArtworkResponseBufferRejectsOversizeChunks",
+        "testArtworkCompletionIsIdempotent",
+    ):
+        expect(token in tests, "SwiftExampleTests should cover {}".format(token))
+    expect('URL: "https://example.com/artwork.png"' in tests,
+           "SwiftExampleTests should reject artwork responses redirected to untrusted hosts")
     expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
     expect("testAPIResultsReplaceTableDataWhenResultsArrayPresent" in tests,
            "SwiftExampleTests should cover accepted API result arrays")
@@ -365,6 +397,7 @@ def check_docs():
     bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
     active_connection_plan = read_text("docs/plans/2026-06-12-active-api-connection.md")
     artwork_identity_plan = read_text("docs/plans/2026-06-13-artwork-result-identity-guard.md")
+    bounded_artwork_plan = read_text("docs/plans/2026-06-13-bounded-artwork-response.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -389,6 +422,7 @@ def check_docs():
         expect("github actions" in lowered, "{} should document hosted static verification".format(text_name))
         expect("active connection" in lowered, "{} should document overlapping request ownership".format(text_name))
         expect("artwork result identity" in lowered, "{} should document stale artwork result rejection".format(text_name))
+        expect("bounded artwork" in lowered, "{} should document bounded artwork responses".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -438,6 +472,30 @@ def check_docs():
     expect("status: completed" in artwork_identity_plan and "All four Make gates" in artwork_identity_plan and
            "hostile mutations" in artwork_identity_plan.lower(),
            "artwork result identity plan should record completed verification")
+    bounded_artwork_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
+    )
+    bounded_artwork_work = markdown_section(bounded_artwork_plan, "Work Completed")
+    bounded_artwork_verification = markdown_section(
+        bounded_artwork_plan, "Verification Completed"
+    )
+    expect(bounded_artwork_status == ["completed"] and bool(bounded_artwork_work),
+           "bounded artwork plan should record one completed status and completed work")
+    expect(bool(bounded_artwork_verification) and not re.search(
+        r"(?i)\b(?:pending|todo|tbd|not run)\b", bounded_artwork_verification
+    ), "bounded artwork plan should record finished verification without pending markers")
+    for evidence in [
+        "make lint",
+        "make test",
+        "make build",
+        "make check",
+        "python3 -m py_compile scripts/check-baseline.py",
+        "git diff --check",
+        "Eight isolated hostile mutations",
+        "Xcode was unavailable",
+    ]:
+        expect(evidence in bounded_artwork_verification,
+               "bounded artwork plan should preserve verification evidence: {}".format(evidence))
     active_connection_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", active_connection_plan
     )

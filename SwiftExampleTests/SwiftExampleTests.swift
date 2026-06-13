@@ -93,6 +93,55 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertNil(controller.artworkURLForRow(NSIndexPath(forRow: 0, inSection: 0)))
     }
 
+    func artworkResponse(statusCode: Int, mimeType: String, contentLength: Int, URL: String = "https://is1-ssl.mzstatic.com/artwork.png") -> NSHTTPURLResponse {
+        return NSHTTPURLResponse(
+            URL: NSURL(string: URL)!,
+            statusCode: statusCode,
+            HTTPVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": mimeType, "Content-Length": "\(contentLength)"]
+        )!
+    }
+
+    func artworkRequest(completion: (NSData?) -> Void = { _ in }) -> ArtworkRequest {
+        return ArtworkRequest(
+            URL: NSURL(string: "https://is1-ssl.mzstatic.com/artwork.png")!,
+            completion: completion
+        )!
+    }
+
+    func testArtworkResponseValidationAcceptsBoundedImages() {
+        let request = artworkRequest()
+        XCTAssertTrue(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/jpeg", contentLength: 1024)))
+        XCTAssertTrue(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: 1024)))
+    }
+
+    func testArtworkResponseValidationRejectsStatusTypeAndOversize() {
+        let request = artworkRequest()
+        XCTAssertFalse(request.isAcceptableResponse(artworkResponse(500, mimeType: "image/jpeg", contentLength: 1024)))
+        XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "text/html", contentLength: 1024)))
+        XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: request.maximumResponseSize + 1)))
+        XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: 1024, URL: "https://example.com/artwork.png")))
+    }
+
+    func testArtworkResponseBufferRejectsOversizeChunks() {
+        let request = artworkRequest()
+        request.responseAccepted = true
+        request.data = NSMutableData(length: request.maximumResponseSize - 1)!
+
+        XCTAssertTrue(request.canAppendArtworkData(NSData(length: 1)))
+        XCTAssertFalse(request.canAppendArtworkData(NSData(length: 2)))
+    }
+
+    func testArtworkCompletionIsIdempotent() {
+        var completionCount = 0
+        let request = artworkRequest { _ in completionCount += 1 }
+
+        request.completeWithData(NSData())
+        request.completeWithData(nil)
+
+        XCTAssertEqual(completionCount, 1)
+    }
+
     func testAPIResultsReplaceTableDataWhenResultsArrayPresent() {
         let controller = SearchResultsViewController()
         let result = NSDictionary(object: "Angry Birds", forKey: "trackName")

@@ -6,6 +6,113 @@
 import UIKit
 import QuartzCore
 
+class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
+    let maximumResponseSize = 1024 * 1024
+    var data = NSMutableData()
+    var responseAccepted = false
+    var requestCompleted = false
+    var connection: NSURLConnection?
+    let completion: (NSData?) -> Void
+
+    init?(URL: NSURL, completion: (NSData?) -> Void) {
+        self.completion = completion
+        super.init()
+
+        let request = NSURLRequest(
+            URL: URL,
+            cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData,
+            timeoutInterval: 15
+        )
+        guard let connection = NSURLConnection(request: request, delegate: self, startImmediately: false) else {
+            return nil
+        }
+
+        self.connection = connection
+    }
+
+    func start() {
+        connection?.start()
+    }
+
+    class func isTrustedURL(URL: NSURL) -> Bool {
+        if let scheme = URL.scheme?.lowercaseString,
+            host = URL.host?.lowercaseString {
+                return scheme == "https" && (host == "mzstatic.com" || host.hasSuffix(".mzstatic.com"))
+        }
+
+        return false
+    }
+
+    func isAcceptableResponse(response: NSURLResponse) -> Bool {
+        guard let httpResponse = response as? NSHTTPURLResponse where
+            httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+                return false
+        }
+
+        guard let responseURL = response.URL where ArtworkRequest.isTrustedURL(responseURL) else {
+            return false
+        }
+
+        let contentLength = response.expectedContentLength
+        if contentLength > Int64(maximumResponseSize) {
+            return false
+        }
+
+        guard let mimeType = response.MIMEType?.lowercaseString else {
+            return false
+        }
+
+        return mimeType == "image/jpeg" || mimeType == "image/png"
+    }
+
+    func canAppendArtworkData(chunk: NSData) -> Bool {
+        return responseAccepted && chunk.length <= maximumResponseSize - data.length
+    }
+
+    func completeWithData(result: NSData?) {
+        if requestCompleted {
+            return
+        }
+
+        requestCompleted = true
+        connection = nil
+        data = NSMutableData()
+        completion(result)
+    }
+
+    func connection(connection: NSURLConnection, didFailWithError error: NSError) {
+        completeWithData(nil)
+    }
+
+    func connection(connection: NSURLConnection, didReceiveResponse response: NSURLResponse) {
+        data = NSMutableData()
+        responseAccepted = isAcceptableResponse(response)
+        if !responseAccepted {
+            connection.cancel()
+            completeWithData(nil)
+        }
+    }
+
+    func connection(connection: NSURLConnection, didReceiveData chunk: NSData) {
+        if !canAppendArtworkData(chunk) {
+            connection.cancel()
+            completeWithData(nil)
+            return
+        }
+
+        data.appendData(chunk)
+    }
+
+    func connectionDidFinishLoading(connection: NSURLConnection) {
+        if !responseAccepted {
+            completeWithData(nil)
+            return
+        }
+
+        completeWithData(NSData(data: data))
+    }
+}
+
 class SearchResultsViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, APIControllerProtocol {
     
     var api: APIController = APIController()
@@ -60,12 +167,10 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
 
     func safeArtworkURLFromString(urlString: String) -> NSURL? {
-        if let url = NSURL(string: urlString),
-            scheme = url.scheme?.lowercaseString,
-            host = url.host?.lowercaseString {
-                if scheme == "https" && (host == "mzstatic.com" || host.hasSuffix(".mzstatic.com")) {
-                    return url
-                }
+        if let url = NSURL(string: urlString) {
+            if ArtworkRequest.isTrustedURL(url) {
+                return url
+            }
         }
 
         return nil
@@ -82,21 +187,31 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
 
     func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath) {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            guard let imgData = NSData(contentsOfURL: imgURL),
-                image = UIImage(data: imgData) else {
+        if let request = ArtworkRequest(URL: imgURL, completion: { [weak self, weak cell, weak tableView] imgData in
+            guard let controller = self,
+                targetCell = cell,
+                targetTableView = tableView,
+                data = imgData else {
                     return
             }
 
-            dispatch_async(dispatch_get_main_queue()) {
-                if let visibleIndexPath = tableView.indexPathForCell(cell)
-                    where visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row,
-                    currentArtworkURL = self.artworkURLForRow(indexPath)
-                    where currentArtworkURL.isEqual(imgURL) {
-                        cell.imageView?.image = image
-                        cell.setNeedsLayout()
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+                guard let image = UIImage(data: data) else {
+                    return
+                }
+
+                dispatch_async(dispatch_get_main_queue()) {
+                    if let visibleIndexPath = targetTableView.indexPathForCell(targetCell)
+                        where visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row,
+                        currentArtworkURL = controller.artworkURLForRow(indexPath)
+                        where currentArtworkURL.isEqual(imgURL) {
+                            targetCell.imageView?.image = image
+                            targetCell.setNeedsLayout()
+                    }
                 }
             }
+        }) {
+            request.start()
         }
     }
     

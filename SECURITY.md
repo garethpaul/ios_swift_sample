@@ -38,6 +38,8 @@ Helpful reports include:
 - The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.
 - Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path and artwork result identity.
+- Bounded artwork responses should require a successful JPEG or PNG response,
+  stop after 1 MiB, and complete at most once before image decoding.
 - Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
 - The pinned macOS GitHub Actions workflow is read-only and parses project
