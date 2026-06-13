@@ -37,8 +37,7 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
                 cell.textLabel?.text = rowData["trackName"] as? String
                 cell.imageView?.image = nil
 
-                if let urlString = rowData["artworkUrl60"] as? String,
-                    imgURL = safeArtworkURLFromString(urlString) {
+                if let imgURL = artworkURLForRow(indexPath) {
                         loadArtworkFromURL(imgURL, forCell: cell, tableView: tableView, indexPath: indexPath)
                 }
             }
@@ -72,6 +71,16 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         return nil
     }
 
+    func artworkURLForRow(indexPath: NSIndexPath) -> NSURL? {
+        guard indexPath.row < tableData.count,
+            let rowData = tableData[indexPath.row] as? NSDictionary,
+            urlString = rowData["artworkUrl60"] as? String else {
+                return nil
+        }
+
+        return safeArtworkURLFromString(urlString)
+    }
+
     func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
             guard let imgData = NSData(contentsOfURL: imgURL),
@@ -81,7 +90,9 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
 
             dispatch_async(dispatch_get_main_queue()) {
                 if let visibleIndexPath = tableView.indexPathForCell(cell)
-                    where visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row {
+                    where visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row,
+                    currentArtworkURL = self.artworkURLForRow(indexPath)
+                    where currentArtworkURL.isEqual(imgURL) {
                         cell.imageView?.image = image
                         cell.setNeedsLayout()
                 }

@@ -298,7 +298,10 @@ def check_first_party_swift():
            "ViewController should clear the network activity indicator when the view disappears")
     expect("if indexPath.row < self.tableData.count" in view, "ViewController should guard table indexes before reading results")
     expect("if let rowData = self.tableData[indexPath.row] as? NSDictionary" in view, "ViewController should optional-cast table rows")
-    expect("if let urlString = rowData[\"artworkUrl60\"] as? String" in view, "ViewController should optional-cast artwork URL")
+    expect("func artworkURLForRow(indexPath: NSIndexPath) -> NSURL?" in view and
+           "indexPath.row < tableData.count" in view and
+           'urlString = rowData["artworkUrl60"] as? String' in view,
+           "ViewController should resolve safe artwork URLs from the current row")
     expect("safeArtworkURLFromString(urlString)" in view, "ViewController should validate artwork URLs before loading them")
     expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
     expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
@@ -312,11 +315,16 @@ def check_first_party_swift():
     expect("dispatch_get_global_queue" in view and "dispatch_get_main_queue()" in view,
            "ViewController should fetch artwork off the main queue and update UI on the main queue")
     expect("tableView.indexPathForCell(cell)" in view and
-           "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view,
-           "ViewController should only apply async artwork to cells still representing the same index path")
+           "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view and
+           "currentArtworkURL = self.artworkURLForRow(indexPath)" in view and
+           "currentArtworkURL.isEqual(imgURL)" in view,
+           "ViewController should only apply async artwork to cells still representing the same current result")
     expect("@testable import SwiftExample" in tests, "SwiftExampleTests should import app code testably")
     expect("testSafeArtworkURLAcceptsHTTPSMZStaticHosts" in tests, "SwiftExampleTests should cover allowed artwork URLs")
     expect("testSafeArtworkURLRejectsUntrustedSchemesAndHosts" in tests, "SwiftExampleTests should cover rejected artwork URLs")
+    expect("testArtworkURLForRowTracksCurrentResultIdentity" in tests and
+           "testArtworkURLForRowRejectsMissingAndUnsafeRows" in tests,
+           "SwiftExampleTests should cover current-row artwork identity")
     expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
     expect("testAPIResultsReplaceTableDataWhenResultsArrayPresent" in tests,
            "SwiftExampleTests should cover accepted API result arrays")
@@ -356,6 +364,7 @@ def check_docs():
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
     active_connection_plan = read_text("docs/plans/2026-06-12-active-api-connection.md")
+    artwork_identity_plan = read_text("docs/plans/2026-06-13-artwork-result-identity-guard.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -379,6 +388,7 @@ def check_docs():
         expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
         expect("github actions" in lowered, "{} should document hosted static verification".format(text_name))
         expect("active connection" in lowered, "{} should document overlapping request ownership".format(text_name))
+        expect("artwork result identity" in lowered, "{} should document stale artwork result rejection".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -425,6 +435,9 @@ def check_docs():
            "hosted validation plan should be marked completed")
     expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
            "bounded API response plan should be marked completed")
+    expect("status: completed" in artwork_identity_plan and "All four Make gates" in artwork_identity_plan and
+           "hostile mutations" in artwork_identity_plan.lower(),
+           "artwork result identity plan should record completed verification")
     active_connection_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", active_connection_plan
     )

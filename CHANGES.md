@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-13
+
+- Guarded async artwork result identity against current row data before image
+  assignment after API reloads.
+
 ## 2026-06-12
 
 - Bound shared response state to one active connection, canceling replaced

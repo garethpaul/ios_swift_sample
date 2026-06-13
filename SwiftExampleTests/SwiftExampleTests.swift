@@ -74,6 +74,25 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertNil(controller.safeArtworkURLFromString("not a url"))
     }
 
+    func testArtworkURLForRowTracksCurrentResultIdentity() {
+        let controller = SearchResultsViewController()
+        let indexPath = NSIndexPath(forRow: 0, inSection: 0)
+        controller.tableData = NSArray(object: NSDictionary(object: "https://is1-ssl.mzstatic.com/first.png", forKey: "artworkUrl60"))
+
+        XCTAssertEqual(controller.artworkURLForRow(indexPath)?.absoluteString, "https://is1-ssl.mzstatic.com/first.png")
+
+        controller.tableData = NSArray(object: NSDictionary(object: "https://is1-ssl.mzstatic.com/second.png", forKey: "artworkUrl60"))
+        XCTAssertEqual(controller.artworkURLForRow(indexPath)?.absoluteString, "https://is1-ssl.mzstatic.com/second.png")
+    }
+
+    func testArtworkURLForRowRejectsMissingAndUnsafeRows() {
+        let controller = SearchResultsViewController()
+        XCTAssertNil(controller.artworkURLForRow(NSIndexPath(forRow: 0, inSection: 0)))
+
+        controller.tableData = NSArray(object: NSDictionary(object: "http://example.com/image.png", forKey: "artworkUrl60"))
+        XCTAssertNil(controller.artworkURLForRow(NSIndexPath(forRow: 0, inSection: 0)))
+    }
+
     func testAPIResultsReplaceTableDataWhenResultsArrayPresent() {
         let controller = SearchResultsViewController()
         let result = NSDictionary(object: "Angry Birds", forKey: "trackName")

@@ -1,6 +1,6 @@
 # Artwork Result Identity Guard
 
-status: planned
+status: completed
 
 ## Context
 
@@ -23,8 +23,17 @@ and cell can represent a different app, allowing stale artwork to be assigned.
   synchronous main-thread networking.
 - Do not claim live network or UIKit execution without Xcode.
 
-## Verification
+## Work Completed
 
-- All four Make gates, Python compilation, metadata parsing, and diff checks.
-- Hostile mutations for missing bounds, unsafe URL reuse, missing equality,
-  assignment-before-identity, focused tests, plan status, and evidence.
+- Added a testable current-row safe artwork URL helper.
+- Required the visible cell, index path, and current artwork URL to still match
+  before assigning a completed image.
+- Added focused XCTest source assertions, static contracts, and documentation.
+
+## Verification Completed
+
+- All four Make gates, Python compilation, metadata parsing, and diff checks
+  passed; local Xcode remained unavailable.
+- Seven hostile mutations covering row bounds, safe URL reuse, equality,
+  current-row lookup, focused tests, plan status, and verification evidence
+  were rejected.
