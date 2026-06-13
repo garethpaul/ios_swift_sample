@@ -129,6 +129,7 @@ def check_required_files():
         "docs/plans/2026-06-12-active-api-connection.md",
         "docs/plans/2026-06-13-artwork-result-identity-guard.md",
         "docs/plans/2026-06-13-bounded-artwork-response.md",
+        "docs/plans/2026-06-13-location-independent-make.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -398,12 +399,17 @@ def check_docs():
     active_connection_plan = read_text("docs/plans/2026-06-12-active-api-connection.md")
     artwork_identity_plan = read_text("docs/plans/2026-06-13-artwork-result-identity-guard.md")
     bounded_artwork_plan = read_text("docs/plans/2026-06-13-bounded-artwork-response.md")
+    location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
-    expect(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
-           "Makefile should expose lint, test, build, and check verification gates")
+    expect(".PHONY: build check lint test" in makefile and
+           "ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))" in makefile and
+           "lint test build: check" in makefile and
+           'python3 "$(ROOT)/scripts/check-baseline.py"' in makefile and
+           "python3 scripts/check-baseline.py" not in makefile,
+           "Makefile should expose location-independent lint, test, build, and check verification gates")
 
     for text_name, text in (
         ("README.md", readme),
@@ -426,6 +432,9 @@ def check_docs():
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
+    expect("absolute makefile path" in readme.lower() and
+           "location-independent" in changes.lower(),
+           "README and CHANGES should document location-independent Make verification")
     expect("make lint" in vision and "make test" in vision and "make build" in vision,
            "VISION should document the standard local verification gates")
     expect("make lint" in changes and "make test" in changes and "make build" in changes,
@@ -496,6 +505,22 @@ def check_docs():
     ]:
         expect(evidence in bounded_artwork_verification,
                "bounded artwork plan should preserve verification evidence: {}".format(evidence))
+    location_make_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", location_independent_make_plan
+    )
+    location_make_verification = markdown_section(
+        location_independent_make_plan, "Verification Completed"
+    )
+    expect(location_make_status == ["completed"] and
+           "All four Make gates passed from the checkout" in location_make_verification and
+           "All four Make gates passed from `/tmp` through the absolute Makefile path" in location_make_verification and
+           "python3 -m py_compile scripts/check-baseline.py" in location_make_verification and
+           "project metadata parsing" in location_make_verification and
+           "git diff --check" in location_make_verification and
+           "`xcodebuild` was unavailable" in location_make_verification and
+           "Five isolated hostile mutations were rejected" in location_make_verification and
+           re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", location_make_verification) is None,
+           "location-independent Make plan should record completed status and actual local verification")
     active_connection_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", active_connection_plan
     )

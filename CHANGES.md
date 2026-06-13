@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Made all Make verification aliases location-independent when invoked through
+  an absolute Makefile path.
 - Replaced unbounded artwork buffering with a bounded artwork response loader
   that accepts successful JPEG or PNG bodies up to 1 MiB and completes once.
 - Guarded async artwork result identity against current row data before image
