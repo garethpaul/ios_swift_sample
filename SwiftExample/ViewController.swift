@@ -35,6 +35,10 @@ class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
     }
 
     class func isTrustedURL(URL: NSURL) -> Bool {
+        guard URL.user == nil && URL.password == nil && URL.port == nil else {
+            return false
+        }
+
         if let scheme = URL.scheme?.lowercaseString,
             host = URL.host?.lowercaseString {
                 return scheme == "https" && (host == "mzstatic.com" || host.hasSuffix(".mzstatic.com"))

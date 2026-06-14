@@ -42,7 +42,7 @@ Helpful reports include:
   stop after 1 MiB, and complete at most once before image decoding.
 - Artwork images should remain within the reviewed 8192-pixel axis and
   16-megapixel total before main-thread cell publication.
-- Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
+- Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts without userinfo or an explicit port instead of accepting arbitrary authorities. The artwork URL tests should cover allowed hosts and rejected schemes, hosts, userinfo, and explicit ports.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
 - The pinned macOS GitHub Actions workflow is read-only and parses project
   metadata without calling the iTunes Search API, fetching artwork, running

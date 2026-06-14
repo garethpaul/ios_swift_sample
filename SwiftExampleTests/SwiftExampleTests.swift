@@ -74,6 +74,13 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertNil(controller.safeArtworkURLFromString("not a url"))
     }
 
+    func testSafeArtworkURLRejectsUserinfoAndExplicitPorts() {
+        let controller = SearchResultsViewController()
+        XCTAssertNil(controller.safeArtworkURLFromString("https://user@is1-ssl.mzstatic.com/artwork.png"))
+        XCTAssertNil(controller.safeArtworkURLFromString("https://user:credential@is1-ssl.mzstatic.com/artwork.png"))
+        XCTAssertNil(controller.safeArtworkURLFromString("https://is1-ssl.mzstatic.com:443/artwork.png"))
+    }
+
     func testArtworkURLForRowTracksCurrentResultIdentity() {
         let controller = SearchResultsViewController()
         let indexPath = NSIndexPath(forRow: 0, inSection: 0)
@@ -121,6 +128,8 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "text/html", contentLength: 1024)))
         XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: request.maximumResponseSize + 1)))
         XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: 1024, URL: "https://example.com/artwork.png")))
+        XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: 1024, URL: "https://user@is1-ssl.mzstatic.com/artwork.png")))
+        XCTAssertFalse(request.isAcceptableResponse(artworkResponse(200, mimeType: "image/png", contentLength: 1024, URL: "https://is1-ssl.mzstatic.com:443/artwork.png")))
     }
 
     func testArtworkResponseBufferRejectsOversizeChunks() {

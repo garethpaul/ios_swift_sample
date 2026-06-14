@@ -44,8 +44,8 @@ Priority:
   at most 1 MiB and one completion
 - Keep artwork pixel dimensions within 8192 pixels per axis and 16 megapixels
   total before reusable-cell publication
-- Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
-- Keep artwork URL tests covering allowed hosts and rejected schemes/hosts
+- Keep artwork loading restricted to HTTPS `mzstatic.com` URLs without userinfo or an explicit port from the iTunes response
+- Keep artwork URL tests covering allowed hosts and rejected schemes, hosts, userinfo, and explicit ports
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as

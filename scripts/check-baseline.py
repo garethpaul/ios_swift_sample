@@ -131,6 +131,7 @@ def check_required_files():
         "docs/plans/2026-06-13-bounded-artwork-response.md",
         "docs/plans/2026-06-13-location-independent-make.md",
         "docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md",
+        "docs/plans/2026-06-14-artwork-authority-boundary.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -236,8 +237,9 @@ def check_first_party_swift():
     for token in ("try!", "as!", "NSURL(string: urlPath)!", "NSData(contentsOfURL: imgURL)!", "appsTableView!", "cell.imageView!"):
         expect(token not in all_source, "first-party Swift should not use forced path {}".format(token))
 
+    credential_scan_source = all_source.replace("URL.password", "")
     for term in ("apiKey", "APIKey", "token", "secret", "password", "Authorization"):
-        expect(term not in all_source, "first-party Swift should not include credential term {}".format(term))
+        expect(term not in credential_scan_source, "first-party Swift should not include credential term {}".format(term))
 
     expect("https://itunes.apple.com/search" in api_raw, "ApiController should keep the public HTTPS iTunes search endpoint")
     expect("NSCharacterSet(charactersInString:" in api, "ApiController should use an explicit search-term encoding allowlist")
@@ -310,6 +312,8 @@ def check_first_party_swift():
     expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
     expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
            "ViewController should restrict artwork loading to HTTPS mzstatic.com URLs")
+    expect("URL.user == nil" in view and "URL.password == nil" in view and "URL.port == nil" in view,
+           "ViewController should reject artwork URL userinfo and explicit ports")
     expect("cell.imageView?.image = nil" in view,
            "ViewController should clear reused artwork image views before async artwork loading")
     expect("func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath)" in view,
@@ -375,6 +379,7 @@ def check_first_party_swift():
         "testArtworkDimensionsAcceptExactLimits",
         "testArtworkDimensionsRejectInvalidAxes",
         "testArtworkDimensionsRejectTotalPixelOverflow",
+        "testSafeArtworkURLRejectsUserinfoAndExplicitPorts",
     ):
         expect(token in tests, "SwiftExampleTests should cover {}".format(token))
     for boundary in (
@@ -389,6 +394,13 @@ def check_first_party_swift():
                "SwiftExampleTests should preserve artwork dimension boundary {}".format(boundary))
     expect('URL: "https://example.com/artwork.png"' in tests,
            "SwiftExampleTests should reject artwork responses redirected to untrusted hosts")
+    for authority_boundary in (
+        "https://user@is1-ssl.mzstatic.com/artwork.png",
+        "https://user:credential@is1-ssl.mzstatic.com/artwork.png",
+        "https://is1-ssl.mzstatic.com:443/artwork.png",
+    ):
+        expect(authority_boundary in tests,
+               "SwiftExampleTests should reject artwork authority {}".format(authority_boundary))
     expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
     expect("testAPIResultsReplaceTableDataWhenResultsArrayPresent" in tests,
            "SwiftExampleTests should cover accepted API result arrays")
@@ -432,6 +444,7 @@ def check_docs():
     bounded_artwork_plan = read_text("docs/plans/2026-06-13-bounded-artwork-response.md")
     location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
     artwork_dimension_plan = read_text("docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md")
+    artwork_authority_plan = read_text("docs/plans/2026-06-14-artwork-authority-boundary.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -463,6 +476,8 @@ def check_docs():
         expect("bounded artwork" in lowered, "{} should document bounded artwork responses".format(text_name))
         expect("artwork" in lowered and "megapixel" in lowered,
                "{} should document artwork pixel dimension limits".format(text_name))
+        expect("userinfo" in lowered and "explicit port" in lowered,
+               "{} should document artwork authority limits".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -526,6 +541,12 @@ def check_docs():
            "16 megapixels" in vision and
            "overflow-safe artwork dimension checks" in read_text("AGENTS.md"),
            "artwork dimension guidance should remain synchronized")
+    expect("status: completed" in artwork_authority_plan and
+           "Verification Completed" in artwork_authority_plan and
+           "hostile mutations" in artwork_authority_plan.lower() and
+           "userinfo" in artwork_authority_plan.lower() and
+           "explicit port" in artwork_authority_plan.lower(),
+           "artwork authority plan should record completed verification")
     bounded_artwork_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
     )
