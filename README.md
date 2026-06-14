@@ -54,8 +54,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Open `SwiftExample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The sample queries the public HTTPS iTunes Search API and renders the JSON `results` array in a table view.
 - Network, URL, JSON, missing result, and missing artwork failures should return an empty or partially rendered table state instead of crashing.
-- API responses must use a successful status and JSON-compatible MIME type and
-  remain within a 1 MiB declared and streamed body limit. Cancellation and
+- API responses must retain the exact final HTTPS `itunes.apple.com/search`
+  endpoint, use a successful status and JSON-compatible MIME type, and remain
+  within a 1 MiB declared and streamed body limit. Cancellation and
   failure callbacks deliver at most one completion.
 - Starting a new search cancels the previous active connection, and stale
   callbacks cannot mutate or complete the replacement request.

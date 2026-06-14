@@ -2,6 +2,8 @@
 
 ## 2026-06-14
 
+- Required the exact final HTTPS iTunes search endpoint before accepting JSON
+  response metadata or body chunks.
 - Rejected artwork URL userinfo and explicit ports for initial and final
   `mzstatic.com` response authorities.
 - Rejected artwork with nonpositive, over-8192-axis, or over-16-megapixel

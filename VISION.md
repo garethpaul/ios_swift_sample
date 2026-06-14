@@ -32,6 +32,8 @@ Priority:
   missing artwork from crashing the sample
 - Clear the retained response buffer after parsed or empty API completion
 - Bound successful JSON-compatible API responses to 1 MiB and one completion
+- Keep the final search response authority on exact HTTPS
+  `itunes.apple.com/search` without userinfo, an explicit port, or a fragment
 - Keep shared response state owned by one active connection and ignore stale callbacks
 - Keep API result UI updates on the main thread
 - Clear the network activity indicator when the results view disappears

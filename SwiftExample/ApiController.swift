@@ -19,6 +19,20 @@ class APIController: NSObject {
     var requestCompleted = false
     var activeConnection: NSURLConnection?
     var delegate: APIControllerProtocol?
+
+    class func isTrustedSearchURL(URL: NSURL) -> Bool {
+        guard URL.user == nil && URL.password == nil && URL.port == nil && URL.fragment == nil else {
+            return false
+        }
+
+        if let scheme = URL.scheme?.lowercaseString,
+            host = URL.host?.lowercaseString,
+            path = URL.path {
+                return scheme == "https" && host == "itunes.apple.com" && path == "/search"
+        }
+
+        return false
+    }
     
     func searchItunesFor(searchTerm: String) {
         activeConnection?.cancel()
@@ -57,6 +71,10 @@ class APIController: NSObject {
     func isAcceptableResponse(response: NSURLResponse) -> Bool {
         guard let httpResponse = response as? NSHTTPURLResponse where
             httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+            return false
+        }
+
+        guard let responseURL = response.URL where APIController.isTrustedSearchURL(responseURL) else {
             return false
         }
 

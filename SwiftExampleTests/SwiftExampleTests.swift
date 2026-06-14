@@ -19,9 +19,9 @@ private class RecordingAPIDelegate: APIControllerProtocol {
 
 class SwiftExampleTests: XCTestCase {
 
-    func response(statusCode: Int, mimeType: String, contentLength: Int) -> NSHTTPURLResponse {
+    func response(statusCode: Int, mimeType: String, contentLength: Int, URL: String = "https://itunes.apple.com/search") -> NSHTTPURLResponse {
         return NSHTTPURLResponse(
-            URL: NSURL(string: "https://itunes.apple.com/search")!,
+            URL: NSURL(string: URL)!,
             statusCode: statusCode,
             HTTPVersion: "HTTP/1.1",
             headerFields: ["Content-Type": mimeType, "Content-Length": "\(contentLength)"]
@@ -39,6 +39,24 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertFalse(api.isAcceptableResponse(response(500, mimeType: "application/json", contentLength: 1024)))
         XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "text/html", contentLength: 1024)))
         XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: api.maximumResponseSize + 1)))
+    }
+
+    func testAPIResponseValidationAcceptsTrustedSearchAuthority() {
+        let api = APIController()
+
+        XCTAssertTrue(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://ITUNES.APPLE.COM/search?term=weather&media=software")))
+    }
+
+    func testAPIResponseValidationRejectsUntrustedSearchAuthorities() {
+        let api = APIController()
+
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "http://itunes.apple.com/search")))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://example.com/search")))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://user@itunes.apple.com/search")))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://user:credential@itunes.apple.com/search")))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://itunes.apple.com:443/search")))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://itunes.apple.com/lookup")))
+        XCTAssertFalse(api.isAcceptableResponse(response(200, mimeType: "application/json", contentLength: 1024, URL: "https://itunes.apple.com/search#results")))
     }
 
     func testAPIResponseBufferRejectsOversizeChunks() {

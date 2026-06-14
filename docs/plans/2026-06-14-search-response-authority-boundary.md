@@ -1,7 +1,7 @@
 ---
 title: Search Response Authority Boundary
 date: 2026-06-14
-status: planned
+status: completed
 execution: code
 ---
 
@@ -44,8 +44,26 @@ therefore reach the shared response buffer and result parser.
 
 ## Work Completed
 
-Pending implementation.
+- Added one trusted final-search URL helper covering HTTPS,
+  `itunes.apple.com`, absent userinfo/port/fragment, and the exact `/search`
+  path.
+- Required every successful search response to pass that helper before declared
+  size, media-type, or body-chunk acceptance.
+- Added accepted-query and rejected authority/path XCTest declarations,
+  mutation-sensitive static contracts, and synchronized repository guidance.
 
 ## Verification Completed
 
-Pending implementation and verification.
+- Python syntax and all four Make gates passed the complete static baseline; the
+  external-directory Make gate also passed.
+- Nine hostile mutations were rejected across scheme, host, userinfo/port,
+  path, fragment, helper invocation, focused test, and completed-plan weakening.
+- The checker confirmed the maintained XCTest declarations and project wiring;
+  xcodebuild was unavailable on Linux, so no XCTest, simulator, or device run is
+  claimed.
+- Exact diff, generated-artifact, protected project/workflow, whitespace,
+  conflict-marker, and changed-line credential audits passed.
+- No live iTunes request, artwork request, simulator, or device flow was
+  performed.
+- The hosted pull-request and security-alert result is recorded against the
+  exact pushed head in the external engineering tracker.

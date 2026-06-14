@@ -132,6 +132,7 @@ def check_required_files():
         "docs/plans/2026-06-13-location-independent-make.md",
         "docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md",
         "docs/plans/2026-06-14-artwork-authority-boundary.md",
+        "docs/plans/2026-06-14-search-response-authority-boundary.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -277,9 +278,33 @@ def check_first_party_swift():
            "ApiController should deliver at most one completion per request")
     expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in api and
            "httpResponse.statusCode >= 200 && httpResponse.statusCode < 300" in api and
+           "response.URL where APIController.isTrustedSearchURL(responseURL)" in api and
            "contentLength > Int64(maximumResponseSize)" in api and
            'mimeType == "application/json" || mimeType == "text/javascript"' in api,
-           "ApiController should require successful bounded JSON-compatible responses")
+           "ApiController should require trusted successful bounded JSON-compatible responses")
+    trusted_search_helper = api.split("class func isTrustedSearchURL", 1)[-1].split(
+        "func searchItunesFor", 1
+    )[0]
+    for token in (
+        "URL.user == nil",
+        "URL.password == nil",
+        "URL.port == nil",
+        "URL.fragment == nil",
+        'scheme == "https"',
+        'host == "itunes.apple.com"',
+        'path == "/search"',
+    ):
+        expect(trusted_search_helper.count(token) == 1,
+               "ApiController trusted search URL helper should preserve {}".format(token))
+    response_method = api.split("func isAcceptableResponse", 1)[-1].split(
+        "func canAppendResponseData", 1
+    )[0]
+    status_index = response_method.find("httpResponse.statusCode >= 200")
+    authority_index = response_method.find("APIController.isTrustedSearchURL(responseURL)")
+    content_length_index = response_method.find("let contentLength")
+    expect(-1 not in (status_index, authority_index, content_length_index) and
+           status_index < authority_index < content_length_index,
+           "ApiController should validate final search authority before response-size acceptance")
     expect("func canAppendResponseData(chunk: NSData) -> Bool" in api and
            "chunk.length <= maximumResponseSize - data.length" in api,
            "ApiController should bound streamed response accumulation")
@@ -292,10 +317,24 @@ def check_first_party_swift():
     for token in (
         "testAPIResponseValidationAcceptsBoundedJSONSuccess",
         "testAPIResponseValidationRejectsStatusTypeAndOversize",
+        "testAPIResponseValidationAcceptsTrustedSearchAuthority",
+        "testAPIResponseValidationRejectsUntrustedSearchAuthorities",
         "testAPIResponseBufferRejectsOversizeChunks",
         "testAPICompletionIsIdempotent",
     ):
         expect(token in tests, "SwiftExampleTests should cover {}".format(token))
+    for search_authority_boundary in (
+        "https://ITUNES.APPLE.COM/search?term=weather&media=software",
+        "http://itunes.apple.com/search",
+        "https://example.com/search",
+        "https://user@itunes.apple.com/search",
+        "https://user:credential@itunes.apple.com/search",
+        "https://itunes.apple.com:443/search",
+        "https://itunes.apple.com/lookup",
+        "https://itunes.apple.com/search#results",
+    ):
+        expect(search_authority_boundary in tests,
+               "SwiftExampleTests should preserve search authority boundary {}".format(search_authority_boundary))
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
     expect("override func viewWillDisappear(animated: Bool)" in view and
@@ -445,6 +484,7 @@ def check_docs():
     location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
     artwork_dimension_plan = read_text("docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md")
     artwork_authority_plan = read_text("docs/plans/2026-06-14-artwork-authority-boundary.md")
+    search_authority_plan = read_text("docs/plans/2026-06-14-search-response-authority-boundary.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -547,6 +587,18 @@ def check_docs():
            "userinfo" in artwork_authority_plan.lower() and
            "explicit port" in artwork_authority_plan.lower(),
            "artwork authority plan should record completed verification")
+    expect("status: completed" in search_authority_plan and
+           "Verification Completed" in search_authority_plan and
+           "hostile mutations" in search_authority_plan.lower() and
+           "userinfo" in search_authority_plan.lower() and
+           "explicit port" in search_authority_plan.lower() and
+           "external-directory Make gate" in search_authority_plan,
+           "search response authority plan should record completed verification")
+    expect("exact final HTTPS `itunes.apple.com/search`" in readme and
+           "final iTunes search response" in security and
+           "final search response authority" in vision and
+           "exact final HTTPS iTunes search endpoint" in changes,
+           "project guidance should document the search response authority boundary")
     bounded_artwork_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
     )
