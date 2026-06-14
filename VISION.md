@@ -42,6 +42,8 @@ Priority:
 - Keep artwork result identity aligned with the current API row after reloads
 - Keep bounded artwork responses limited to successful JPEG or PNG bodies of
   at most 1 MiB and one completion
+- Keep artwork pixel dimensions within 8192 pixels per axis and 16 megapixels
+  total before reusable-cell publication
 - Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
 - Keep artwork URL tests covering allowed hosts and rejected schemes/hosts
 - Keep screenshot and README aligned with app behavior

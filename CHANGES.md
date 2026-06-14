@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-14
+
+- Rejected artwork with nonpositive, over-8192-axis, or over-16-megapixel
+  dimensions before assigning decoded images to reusable cells.
+
 ## 2026-06-13
 
 - Made all Make verification aliases location-independent when invoked through

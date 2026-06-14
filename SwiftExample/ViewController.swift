@@ -118,6 +118,8 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     var api: APIController = APIController()
     @IBOutlet var appsTableView : UITableView?
     var tableData: NSArray = NSArray()
+    let maximumArtworkDimension = 8192
+    let maximumArtworkPixelCount = 16 * 1024 * 1024
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -186,6 +188,26 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         return safeArtworkURLFromString(urlString)
     }
 
+    func canDisplayArtworkDimensions(width: Int, height: Int) -> Bool {
+        guard width > 0 && height > 0 &&
+            width <= maximumArtworkDimension && height <= maximumArtworkDimension else {
+            return false
+        }
+
+        return width <= maximumArtworkPixelCount / height
+    }
+
+    func isAcceptableArtworkImage(image: UIImage) -> Bool {
+        guard let cgImage = image.CGImage else {
+            return false
+        }
+
+        return canDisplayArtworkDimensions(
+            CGImageGetWidth(cgImage),
+            height: CGImageGetHeight(cgImage)
+        )
+    }
+
     func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath) {
         if let request = ArtworkRequest(URL: imgURL, completion: { [weak self, weak cell, weak tableView] imgData in
             guard let controller = self,
@@ -196,7 +218,7 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
             }
 
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-                guard let image = UIImage(data: data) else {
+                guard let image = UIImage(data: data) where controller.isAcceptableArtworkImage(image) else {
                     return
                 }
 

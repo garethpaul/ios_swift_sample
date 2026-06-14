@@ -130,6 +130,7 @@ def check_required_files():
         "docs/plans/2026-06-13-artwork-result-identity-guard.md",
         "docs/plans/2026-06-13-bounded-artwork-response.md",
         "docs/plans/2026-06-13-location-independent-make.md",
+        "docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -338,6 +339,23 @@ def check_first_party_swift():
            "ViewController should replace unbounded artwork buffering with ArtworkRequest")
     expect("dispatch_get_global_queue" in view and "dispatch_get_main_queue()" in view,
            "ViewController should fetch artwork off the main queue and update UI on the main queue")
+    expect("let maximumArtworkDimension = 8192" in view and
+           "let maximumArtworkPixelCount = 16 * 1024 * 1024" in view,
+           "ViewController should retain reviewed artwork dimension limits")
+    expect("func canDisplayArtworkDimensions(width: Int, height: Int) -> Bool" in view and
+           "width > 0 && height > 0" in view and
+           "width <= maximumArtworkDimension && height <= maximumArtworkDimension" in view and
+           "width <= maximumArtworkPixelCount / height" in view and
+           "width * height" not in view,
+           "ViewController should validate artwork dimensions with overflow-safe arithmetic")
+    expect("func isAcceptableArtworkImage(image: UIImage) -> Bool" in view and
+           "CGImageGetWidth(cgImage)" in view and "CGImageGetHeight(cgImage)" in view,
+           "ViewController should derive artwork dimensions from the constructed image")
+    image_guard = view.find("guard let image = UIImage(data: data) where controller.isAcceptableArtworkImage(image)")
+    main_publish = view.find("dispatch_async(dispatch_get_main_queue())", image_guard)
+    cell_publish = view.find("targetCell.imageView?.image = image", main_publish)
+    expect(-1 not in (image_guard, main_publish, cell_publish) and image_guard < main_publish < cell_publish,
+           "ViewController should reject oversized artwork before main-thread cell publication")
     expect("targetTableView.indexPathForCell(targetCell)" in view and
            "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view and
            "currentArtworkURL = controller.artworkURLForRow(indexPath)" in view and
@@ -354,8 +372,21 @@ def check_first_party_swift():
         "testArtworkResponseValidationRejectsStatusTypeAndOversize",
         "testArtworkResponseBufferRejectsOversizeChunks",
         "testArtworkCompletionIsIdempotent",
+        "testArtworkDimensionsAcceptExactLimits",
+        "testArtworkDimensionsRejectInvalidAxes",
+        "testArtworkDimensionsRejectTotalPixelOverflow",
     ):
         expect(token in tests, "SwiftExampleTests should cover {}".format(token))
+    for boundary in (
+        "canDisplayArtworkDimensions(8192, height: 2048)",
+        "canDisplayArtworkDimensions(4096, height: 4096)",
+        "canDisplayArtworkDimensions(8193, height: 1)",
+        "canDisplayArtworkDimensions(1, height: 8193)",
+        "canDisplayArtworkDimensions(8192, height: 2049)",
+        "canDisplayArtworkDimensions(Int.max, height: Int.max)",
+    ):
+        expect(boundary in tests,
+               "SwiftExampleTests should preserve artwork dimension boundary {}".format(boundary))
     expect('URL: "https://example.com/artwork.png"' in tests,
            "SwiftExampleTests should reject artwork responses redirected to untrusted hosts")
     expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
@@ -400,6 +431,7 @@ def check_docs():
     artwork_identity_plan = read_text("docs/plans/2026-06-13-artwork-result-identity-guard.md")
     bounded_artwork_plan = read_text("docs/plans/2026-06-13-bounded-artwork-response.md")
     location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
+    artwork_dimension_plan = read_text("docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -429,6 +461,8 @@ def check_docs():
         expect("active connection" in lowered, "{} should document overlapping request ownership".format(text_name))
         expect("artwork result identity" in lowered, "{} should document stale artwork result rejection".format(text_name))
         expect("bounded artwork" in lowered, "{} should document bounded artwork responses".format(text_name))
+        expect("artwork" in lowered and "megapixel" in lowered,
+               "{} should document artwork pixel dimension limits".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -481,6 +515,17 @@ def check_docs():
     expect("status: completed" in artwork_identity_plan and "All four Make gates" in artwork_identity_plan and
            "hostile mutations" in artwork_identity_plan.lower(),
            "artwork result identity plan should record completed verification")
+    artwork_dimension_verification = markdown_section(artwork_dimension_plan, "Verification Results")
+    expect("status: completed" in artwork_dimension_plan and
+           "all six isolated hostile mutations were rejected" in artwork_dimension_verification.lower() and
+           "Xcode was unavailable" in artwork_dimension_verification and
+           "No credentials or signing material" in artwork_dimension_verification,
+           "artwork dimension plan should record completed local verification")
+    expect("over-16-megapixel" in changes and
+           "16-megapixel total" in security and
+           "16 megapixels" in vision and
+           "overflow-safe artwork dimension checks" in read_text("AGENTS.md"),
+           "artwork dimension guidance should remain synchronized")
     bounded_artwork_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
     )

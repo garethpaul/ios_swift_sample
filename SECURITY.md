@@ -40,6 +40,8 @@ Helpful reports include:
 - Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path and artwork result identity.
 - Bounded artwork responses should require a successful JPEG or PNG response,
   stop after 1 MiB, and complete at most once before image decoding.
+- Artwork images should remain within the reviewed 8192-pixel axis and
+  16-megapixel total before main-thread cell publication.
 - Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
 - The pinned macOS GitHub Actions workflow is read-only and parses project

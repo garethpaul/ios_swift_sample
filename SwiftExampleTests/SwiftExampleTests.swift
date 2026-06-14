@@ -132,6 +132,29 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertFalse(request.canAppendArtworkData(NSData(length: 2)))
     }
 
+    func testArtworkDimensionsAcceptExactLimits() {
+        let controller = SearchResultsViewController()
+
+        XCTAssertTrue(controller.canDisplayArtworkDimensions(8192, height: 2048))
+        XCTAssertTrue(controller.canDisplayArtworkDimensions(4096, height: 4096))
+    }
+
+    func testArtworkDimensionsRejectInvalidAxes() {
+        let controller = SearchResultsViewController()
+
+        XCTAssertFalse(controller.canDisplayArtworkDimensions(0, height: 1))
+        XCTAssertFalse(controller.canDisplayArtworkDimensions(1, height: 0))
+        XCTAssertFalse(controller.canDisplayArtworkDimensions(8193, height: 1))
+        XCTAssertFalse(controller.canDisplayArtworkDimensions(1, height: 8193))
+    }
+
+    func testArtworkDimensionsRejectTotalPixelOverflow() {
+        let controller = SearchResultsViewController()
+
+        XCTAssertFalse(controller.canDisplayArtworkDimensions(8192, height: 2049))
+        XCTAssertFalse(controller.canDisplayArtworkDimensions(Int.max, height: Int.max))
+    }
+
     func testArtworkCompletionIsIdempotent() {
         var completionCount = 0
         let request = artworkRequest { _ in completionCount += 1 }

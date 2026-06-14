@@ -64,7 +64,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The network activity indicator is also cleared when the results view disappears before completion.
 - Table rendering validates the row index before reading from the parsed results array.
 - Result array tests cover accepted API arrays and malformed payloads that should clear stale table data.
-- Async artwork loading accepts only HTTPS `mzstatic.com` artwork URLs from the iTunes response, requires bounded artwork responses to be successful JPEG or PNG bodies no larger than 1 MiB, clears reused image views before loading, decodes image data off the main thread, and applies images back on the main thread only if the cell still represents the same index path and artwork result identity. Malformed, oversized, or untrusted artwork values leave the image empty. Artwork URL tests cover allowed hosts and rejected schemes/hosts.
+- Async artwork loading accepts only HTTPS `mzstatic.com` artwork URLs from the iTunes response, requires bounded artwork responses to be successful JPEG or PNG bodies no larger than 1 MiB, rejects images over 8192 pixels per axis or 16 megapixels total, clears reused image views before loading, decodes image data off the main thread, and applies images back on the main thread only if the cell still represents the same index path and artwork result identity. Malformed, oversized, or untrusted artwork values leave the image empty. Artwork URL tests cover allowed hosts and rejected schemes/hosts.
 
 ## Testing and Verification
 
