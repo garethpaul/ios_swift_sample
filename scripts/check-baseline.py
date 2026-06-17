@@ -643,6 +643,30 @@ def check_docs():
            "uncached 15-second request policy" in changes and
            "uncached 15-second iTunes search requests" in read_text("AGENTS.md"),
            "project guidance should document the bounded search request policy")
+    search_request_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", search_request_plan
+    )
+    search_request_work = markdown_section(search_request_plan, "Work Completed")
+    search_request_verification = markdown_section(
+        search_request_plan, "Verification Completed"
+    )
+    expect(search_request_status == ["completed"] and bool(search_request_work),
+           "search request transport plan should record completed status and work")
+    expect(bool(search_request_verification) and not re.search(
+        r"(?i)\b(?:pending|todo|tbd|not run)\b", search_request_verification
+    ), "search request transport plan should record finished verification")
+    for evidence in [
+        "make check",
+        "absolute Makefile gate passed from `/tmp`",
+        "Seven isolated hostile mutations were rejected",
+        "generated-artifact",
+        "secret-signature",
+        "27660232377",
+        "27660233808",
+        "xcodebuild` was unavailable",
+    ]:
+        expect(evidence in search_request_verification,
+               "search request transport plan should preserve verification evidence: {}".format(evidence))
     bounded_artwork_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
     )

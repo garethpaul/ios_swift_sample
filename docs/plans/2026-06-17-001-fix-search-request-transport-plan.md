@@ -3,6 +3,7 @@ title: "fix: Bound iTunes search request transport"
 type: fix
 date: 2026-06-17
 execution: code
+status: completed
 ---
 
 # fix: Bound iTunes search request transport
@@ -166,3 +167,27 @@ sequenceDiagram
 - AE3. Given the completed change on Linux, when verification is reported,
   then Xcode-dependent execution is identified as unavailable rather than
   presented as locally tested.
+
+---
+
+## Work Completed
+
+- Centralized iTunes search request construction in `APIController` with
+  `ReloadIgnoringLocalCacheData` and a 15-second timeout.
+- Added focused XCTest declarations for URL preservation, cache policy, and
+  timeout behavior while retaining the existing connection lifecycle.
+- Extended the portable baseline and maintainer guidance so policy, helper,
+  test, and documentation regressions fail closed.
+
+## Verification Completed
+
+- Repository-root `make check` passed the maintained static baseline.
+- The absolute Makefile gate passed from `/tmp`.
+- Seven isolated hostile mutations were rejected for request policy, timeout,
+  helper use, XCTest assertions, README guidance, and completed-plan evidence.
+- Exact diff, generated-artifact, conflict-marker, and changed-line
+  secret-signature audits passed.
+- The stacked exact head passed canonical push run `27660232377` and
+  pull-request run `27660233808`; both baseline jobs completed successfully.
+- `xcodebuild` was unavailable on Linux, so local simulator, XCTest, and live
+  iTunes execution were not claimed.
