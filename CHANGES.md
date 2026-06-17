@@ -4,6 +4,7 @@
 
 - Applied an uncached 15-second request policy to every iTunes search before
   starting its active connection.
+- Protected checkout-relative verification from a hostile `ROOT=/tmp` override.
 
 ## 2026-06-14
 

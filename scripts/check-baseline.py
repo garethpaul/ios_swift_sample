@@ -505,16 +505,27 @@ def check_docs():
     artwork_authority_plan = read_text("docs/plans/2026-06-14-artwork-authority-boundary.md")
     search_authority_plan = read_text("docs/plans/2026-06-14-search-response-authority-boundary.md")
     search_request_plan = read_text("docs/plans/2026-06-17-001-fix-search-request-transport-plan.md")
+    make_root_override_plan = read_text(
+        "docs/plans/2026-06-17-002-fix-make-root-override-protection-plan.md"
+    )
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
+    make_lines = [line.strip() for line in makefile.splitlines()]
 
     expect(".PHONY: build check lint test" in makefile and
-           "ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))" in makefile and
+           make_lines.count("override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))") == 1 and
+           not any(line.startswith("ROOT :=") for line in make_lines) and
            "lint test build: check" in makefile and
            'python3 "$(ROOT)/scripts/check-baseline.py"' in makefile and
+           'python3 "$(ROOT)/scripts/test-make-root-override-contract.py"' in makefile and
            "python3 scripts/check-baseline.py" not in makefile,
            "Makefile should expose location-independent lint, test, build, and check verification gates")
+
+    expect("status: completed" in make_root_override_plan and
+           "hostile `ROOT=/tmp` override" in make_root_override_plan and
+           "absolute Makefile gate passed from `/tmp`" in make_root_override_plan,
+           "Make root override plan should record completed hostile-override verification")
 
     for text_name, text in (
         ("README.md", readme),
@@ -542,8 +553,10 @@ def check_docs():
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
     expect("absolute makefile path" in readme.lower() and
-           "location-independent" in changes.lower(),
-           "README and CHANGES should document location-independent Make verification")
+           "hostile `root` command-line override" in readme.lower() and
+           "location-independent" in changes.lower() and
+           "hostile `root=/tmp` override" in changes.lower(),
+           "README and CHANGES should document authoritative location-independent Make verification")
     expect("make lint" in vision and "make test" in vision and "make build" in vision,
            "VISION should document the standard local verification gates")
     expect("make lint" in changes and "make test" in changes and "make build" in changes,
