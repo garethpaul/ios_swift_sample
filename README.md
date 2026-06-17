@@ -60,6 +60,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   failure callbacks deliver at most one completion.
 - Starting a new search cancels the previous active connection, and stale
   callbacks cannot mutate or complete the replacement request.
+- Each search uses a 15-second uncached request policy so the sample does not
+  reuse protocol cache data or wait for the platform default timeout.
 - API completion clears the retained response buffer after delivering parsed or empty results.
 - API results hop back to the main thread before updating table data, reloading the table, or clearing the network activity indicator.
 - The network activity indicator is also cleared when the results view disappears before completion.

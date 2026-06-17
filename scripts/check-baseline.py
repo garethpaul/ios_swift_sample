@@ -133,6 +133,7 @@ def check_required_files():
         "docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md",
         "docs/plans/2026-06-14-artwork-authority-boundary.md",
         "docs/plans/2026-06-14-search-response-authority-boundary.md",
+        "docs/plans/2026-06-17-001-fix-search-request-transport-plan.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -247,6 +248,18 @@ def check_first_party_swift():
     expect("if let escapedSearchTerm" in api, "ApiController should handle failed term encoding")
     expect("if let url = NSURL(string: urlPath)" in api, "ApiController should handle failed URL creation")
     expect("if let connection = NSURLConnection" in api, "ApiController should handle failed connection creation")
+    expect("func requestForSearchURL(URL: NSURL) -> NSURLRequest" in api and
+           "cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData" in api and
+           "timeoutInterval: 15" in api,
+           "ApiController should construct uncached search requests with a 15-second timeout")
+    search_method = api.split("func searchItunesFor", 1)[-1].split(
+        "func completeWithResults", 1
+    )[0]
+    request_policy_index = search_method.find("let request = requestForSearchURL(url)")
+    connection_index = search_method.find("NSURLConnection(request: request")
+    expect(-1 not in (request_policy_index, connection_index) and request_policy_index < connection_index and
+           "NSURLRequest(URL: url)" not in search_method,
+           "ApiController should apply the bounded search request policy before connection creation")
     expect("func completeWithResults(results: NSDictionary)" in api, "ApiController should centralize API completion")
     expect("delegate?.didRecieveAPIResults(results)" in api, "ApiController should deliver parsed results through completion helper")
     expect("completeWithResults(NSDictionary())" in api, "ApiController should return empty results on failure")
@@ -321,6 +334,7 @@ def check_first_party_swift():
         "testAPIResponseValidationRejectsUntrustedSearchAuthorities",
         "testAPIResponseBufferRejectsOversizeChunks",
         "testAPICompletionIsIdempotent",
+        "testSearchRequestUsesBoundedUncachedPolicy",
     ):
         expect(token in tests, "SwiftExampleTests should cover {}".format(token))
     for search_authority_boundary in (
@@ -335,6 +349,11 @@ def check_first_party_swift():
     ):
         expect(search_authority_boundary in tests,
                "SwiftExampleTests should preserve search authority boundary {}".format(search_authority_boundary))
+    expect("controller.requestForSearchURL(url)" in tests and
+           "request.URL?.isEqual(url) == true" in tests and
+           "XCTAssertEqual(request.cachePolicy, NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData)" in tests and
+           "XCTAssertEqual(request.timeoutInterval, 15)" in tests,
+           "SwiftExampleTests should assert the exact search request URL, cache policy, and timeout")
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
     expect("override func viewWillDisappear(animated: Bool)" in view and
@@ -485,6 +504,7 @@ def check_docs():
     artwork_dimension_plan = read_text("docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md")
     artwork_authority_plan = read_text("docs/plans/2026-06-14-artwork-authority-boundary.md")
     search_authority_plan = read_text("docs/plans/2026-06-14-search-response-authority-boundary.md")
+    search_request_plan = read_text("docs/plans/2026-06-17-001-fix-search-request-transport-plan.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -599,6 +619,17 @@ def check_docs():
            "final search response authority" in vision and
            "exact final HTTPS iTunes search endpoint" in changes,
            "project guidance should document the search response authority boundary")
+    expect("R1. Every iTunes search request must ignore local cache data." in search_request_plan and
+           "R2. Every iTunes search request must use a 15-second timeout." in search_request_plan and
+           "ReloadIgnoringLocalCacheData" in search_request_plan and
+           "URLSession" in search_request_plan,
+           "search request transport plan should preserve the approved policy and modernization boundary")
+    expect("15-second uncached request policy" in readme and
+           "uncached 15-second search request" in security and
+           "15-second timeout and ignores local cache data" in vision and
+           "uncached 15-second request policy" in changes and
+           "uncached 15-second iTunes search requests" in read_text("AGENTS.md"),
+           "project guidance should document the bounded search request policy")
     bounded_artwork_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
     )

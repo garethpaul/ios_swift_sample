@@ -36,6 +36,8 @@ Helpful reports include:
   cancellation and failure callbacks overlap.
 - The active connection owns shared response state; starting a replacement
   search cancels it and stale connection callbacks must be ignored.
+- Preserve the uncached 15-second search request policy so stale protocol cache
+  data and the platform default timeout do not weaken the request lifecycle.
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
 - The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.

@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-17
+
+- Applied an uncached 15-second request policy to every iTunes search before
+  starting its active connection.
+
 ## 2026-06-14
 
 - Required the exact final HTTPS iTunes search endpoint before accepting JSON

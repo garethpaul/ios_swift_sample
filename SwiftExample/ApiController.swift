@@ -33,6 +33,14 @@ class APIController: NSObject {
 
         return false
     }
+
+    func requestForSearchURL(URL: NSURL) -> NSURLRequest {
+        return NSURLRequest(
+            URL: URL,
+            cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData,
+            timeoutInterval: 15
+        )
+    }
     
     func searchItunesFor(searchTerm: String) {
         activeConnection?.cancel()
@@ -45,7 +53,7 @@ class APIController: NSObject {
         if let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters(allowedCharacters) {
             let urlPath = "https://itunes.apple.com/search?term=\(escapedSearchTerm)&media=software"
             if let url = NSURL(string: urlPath) {
-                let request: NSURLRequest = NSURLRequest(URL: url)
+                let request = requestForSearchURL(url)
                 if let connection = NSURLConnection(request: request, delegate: self, startImmediately: false) {
                     activeConnection = connection
                     connection.start()

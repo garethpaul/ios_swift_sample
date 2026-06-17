@@ -35,6 +35,8 @@ Priority:
 - Keep the final search response authority on exact HTTPS
   `itunes.apple.com/search` without userinfo, an explicit port, or a fragment
 - Keep shared response state owned by one active connection and ignore stale callbacks
+- Keep a policy where each iTunes search request uses a 15-second timeout and ignores local cache data
+  before starting the active connection
 - Keep API result UI updates on the main thread
 - Clear the network activity indicator when the results view disappears
 - Guard table indexes before reading parsed result rows

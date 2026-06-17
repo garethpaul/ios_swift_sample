@@ -34,6 +34,17 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertTrue(api.isAcceptableResponse(response(200, mimeType: "text/javascript", contentLength: 1024)))
     }
 
+    func testSearchRequestUsesBoundedUncachedPolicy() {
+        let controller = APIController()
+        let url = NSURL(string: "https://itunes.apple.com/search?term=weather&media=software")!
+
+        let request = controller.requestForSearchURL(url)
+
+        XCTAssertTrue(request.URL?.isEqual(url) == true)
+        XCTAssertEqual(request.cachePolicy, NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData)
+        XCTAssertEqual(request.timeoutInterval, 15)
+    }
+
     func testAPIResponseValidationRejectsStatusTypeAndOversize() {
         let api = APIController()
         XCTAssertFalse(api.isAcceptableResponse(response(500, mimeType: "application/json", contentLength: 1024)))
