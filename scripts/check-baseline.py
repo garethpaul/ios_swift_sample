@@ -34,6 +34,14 @@ def read_text(path):
     return target.read_text(encoding="utf-8")
 
 
+def markdown_section(text, heading):
+    match = re.search(
+        r"(?ms)^## {}\s*$\n(.*?)(?=^## |\Z)".format(re.escape(heading)),
+        text,
+    )
+    return match.group(1).strip() if match else ""
+
+
 def parse_xml(path):
     target = rel(path)
     expect(target.exists(), "{} is missing".format(path))
@@ -119,6 +127,13 @@ def check_required_files():
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-api-response.md",
         "docs/plans/2026-06-12-active-api-connection.md",
+        "docs/plans/2026-06-13-artwork-result-identity-guard.md",
+        "docs/plans/2026-06-13-bounded-artwork-response.md",
+        "docs/plans/2026-06-13-location-independent-make.md",
+        "docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md",
+        "docs/plans/2026-06-14-artwork-authority-boundary.md",
+        "docs/plans/2026-06-14-search-response-authority-boundary.md",
+        "docs/plans/2026-06-17-001-fix-search-request-transport-plan.md",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -224,15 +239,38 @@ def check_first_party_swift():
     for token in ("try!", "as!", "NSURL(string: urlPath)!", "NSData(contentsOfURL: imgURL)!", "appsTableView!", "cell.imageView!"):
         expect(token not in all_source, "first-party Swift should not use forced path {}".format(token))
 
+    credential_scan_source = all_source.replace("URL.password", "")
     for term in ("apiKey", "APIKey", "token", "secret", "password", "Authorization"):
-        expect(term not in all_source, "first-party Swift should not include credential term {}".format(term))
+        expect(term not in credential_scan_source, "first-party Swift should not include credential term {}".format(term))
 
     expect("https://itunes.apple.com/search" in api_raw, "ApiController should keep the public HTTPS iTunes search endpoint")
     expect("NSCharacterSet(charactersInString:" in api, "ApiController should use an explicit search-term encoding allowlist")
-    expect("if let escapedSearchTerm" in api, "ApiController should handle failed term encoding")
+    expect("let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters" in api,
+           "ApiController should handle failed term encoding")
     expect("if let url = NSURL(string: urlPath)" in api, "ApiController should handle failed URL creation")
     expect("if let connection = NSURLConnection" in api, "ApiController should handle failed connection creation")
+    expect("func requestForSearchURL(URL: NSURL) -> NSURLRequest" in api and
+           "cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData" in api and
+           "timeoutInterval: 15" in api,
+           "ApiController should construct uncached search requests with a 15-second timeout")
+    expect("let maximumSearchTermLength = 200" in api and
+           "let maximumSearchTermByteLength = 800" in api and
+           "func isAcceptableSearchTerm(searchTerm: String) -> Bool" in api and
+           "controlCharacterSet" in api and
+           "searchTerm.characters.count <= maximumSearchTermLength" in api and
+           "searchTerm.utf8.count <= maximumSearchTermByteLength" in api,
+           "ApiController should reject empty, control-bearing, and oversized search terms")
+    search_method = api.split("func searchItunesFor", 1)[-1].split(
+        "func completeWithResults", 1
+    )[0]
+    request_policy_index = search_method.find("let request = requestForSearchURL(url)")
+    connection_index = search_method.find("NSURLConnection(request: request")
+    expect(-1 not in (request_policy_index, connection_index) and request_policy_index < connection_index and
+           "NSURLRequest(URL: url)" not in search_method,
+           "ApiController should apply the bounded search request policy before connection creation")
     expect("func completeWithResults(results: NSDictionary)" in api, "ApiController should centralize API completion")
+    expect("protocol APIControllerProtocol: class" in api and "weak var delegate: APIControllerProtocol?" in api,
+           "ApiController should not retain its owning view controller through the delegate")
     expect("delegate?.didRecieveAPIResults(results)" in api, "ApiController should deliver parsed results through completion helper")
     expect("completeWithResults(NSDictionary())" in api, "ApiController should return empty results on failure")
     expect("completeWithResults(jsonResult)" in api, "ApiController should deliver parsed JSON through completion helper")
@@ -263,9 +301,33 @@ def check_first_party_swift():
            "ApiController should deliver at most one completion per request")
     expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in api and
            "httpResponse.statusCode >= 200 && httpResponse.statusCode < 300" in api and
+           "response.URL where APIController.isTrustedSearchURL(responseURL)" in api and
            "contentLength > Int64(maximumResponseSize)" in api and
            'mimeType == "application/json" || mimeType == "text/javascript"' in api,
-           "ApiController should require successful bounded JSON-compatible responses")
+           "ApiController should require trusted successful bounded JSON-compatible responses")
+    trusted_search_helper = api.split("class func isTrustedSearchURL", 1)[-1].split(
+        "func searchItunesFor", 1
+    )[0]
+    for token in (
+        "URL.user == nil",
+        "URL.password == nil",
+        "URL.port == nil",
+        "URL.fragment == nil",
+        'scheme == "https"',
+        'host == "itunes.apple.com"',
+        'path == "/search"',
+    ):
+        expect(trusted_search_helper.count(token) == 1,
+               "ApiController trusted search URL helper should preserve {}".format(token))
+    response_method = api.split("func isAcceptableResponse", 1)[-1].split(
+        "func canAppendResponseData", 1
+    )[0]
+    status_index = response_method.find("httpResponse.statusCode >= 200")
+    authority_index = response_method.find("APIController.isTrustedSearchURL(responseURL)")
+    content_length_index = response_method.find("let contentLength")
+    expect(-1 not in (status_index, authority_index, content_length_index) and
+           status_index < authority_index < content_length_index,
+           "ApiController should validate final search authority before response-size acceptance")
     expect("func canAppendResponseData(chunk: NSData) -> Bool" in api and
            "chunk.length <= maximumResponseSize - data.length" in api,
            "ApiController should bound streamed response accumulation")
@@ -278,10 +340,30 @@ def check_first_party_swift():
     for token in (
         "testAPIResponseValidationAcceptsBoundedJSONSuccess",
         "testAPIResponseValidationRejectsStatusTypeAndOversize",
+        "testAPIResponseValidationAcceptsTrustedSearchAuthority",
+        "testAPIResponseValidationRejectsUntrustedSearchAuthorities",
         "testAPIResponseBufferRejectsOversizeChunks",
         "testAPICompletionIsIdempotent",
+        "testSearchRequestUsesBoundedUncachedPolicy",
     ):
         expect(token in tests, "SwiftExampleTests should cover {}".format(token))
+    for search_authority_boundary in (
+        "https://ITUNES.APPLE.COM/search?term=weather&media=software",
+        "http://itunes.apple.com/search",
+        "https://example.com/search",
+        "https://user@itunes.apple.com/search",
+        "https://user:credential@itunes.apple.com/search",
+        "https://itunes.apple.com:443/search",
+        "https://itunes.apple.com/lookup",
+        "https://itunes.apple.com/search#results",
+    ):
+        expect(search_authority_boundary in tests,
+               "SwiftExampleTests should preserve search authority boundary {}".format(search_authority_boundary))
+    expect("controller.requestForSearchURL(url)" in tests and
+           "request.URL?.isEqual(url) == true" in tests and
+           "XCTAssertEqual(request.cachePolicy, NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData)" in tests and
+           "XCTAssertEqual(request.timeoutInterval, 15)" in tests,
+           "SwiftExampleTests should assert the exact search request URL, cache policy, and timeout")
 
     expect("api.searchItunesFor(" in view, "ViewController should still start the sample search")
     expect("override func viewWillDisappear(animated: Bool)" in view and
@@ -290,25 +372,127 @@ def check_first_party_swift():
            "ViewController should clear the network activity indicator when the view disappears")
     expect("if indexPath.row < self.tableData.count" in view, "ViewController should guard table indexes before reading results")
     expect("if let rowData = self.tableData[indexPath.row] as? NSDictionary" in view, "ViewController should optional-cast table rows")
-    expect("if let urlString = rowData[\"artworkUrl60\"] as? String" in view, "ViewController should optional-cast artwork URL")
+    expect("func artworkURLForRow(indexPath: NSIndexPath) -> NSURL?" in view and
+           "indexPath.row < tableData.count" in view and
+           'urlString = rowData["artworkUrl60"] as? String' in view,
+           "ViewController should resolve safe artwork URLs from the current row")
     expect("safeArtworkURLFromString(urlString)" in view, "ViewController should validate artwork URLs before loading them")
     expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
     expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
            "ViewController should restrict artwork loading to HTTPS mzstatic.com URLs")
+    expect("URL.user == nil" in view and "URL.password == nil" in view and "URL.port == nil" in view,
+           "ViewController should reject artwork URL userinfo and explicit ports")
     expect("cell.imageView?.image = nil" in view,
            "ViewController should clear reused artwork image views before async artwork loading")
     expect("func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath)" in view,
            "ViewController should keep asynchronous artwork loading in a helper")
     expect("loadArtworkFromURL(imgURL, forCell: cell, tableView: tableView, indexPath: indexPath)" in view,
            "ViewController should route validated artwork URLs through the async loader")
+    expect("class ArtworkRequest: NSObject, NSURLConnectionDataDelegate" in view and
+           "let maximumResponseSize = 1024 * 1024" in view and
+           "timeoutInterval: 15" in view,
+           "ArtworkRequest should stream bounded artwork with a finite timeout")
+    expect("func isAcceptableResponse(response: NSURLResponse) -> Bool" in view and
+           "httpResponse.statusCode >= 200 && httpResponse.statusCode < 300" in view and
+           "response.URL where ArtworkRequest.isTrustedURL(responseURL)" in view and
+           "contentLength > Int64(maximumResponseSize)" in view and
+           'mimeType == "image/jpeg" || mimeType == "image/png"' in view,
+           "ArtworkRequest should require trusted successful bounded JPEG or PNG responses")
+    expect("func canAppendArtworkData(chunk: NSData) -> Bool" in view and
+           "chunk.length <= maximumResponseSize - data.length" in view and
+           view.count("connection.cancel()") >= 2,
+           "ArtworkRequest should stop rejected or oversized streamed bodies")
+    expect("func completeWithData(result: NSData?)" in view and
+           "if requestCompleted" in view and "requestCompleted = true" in view and
+           "completeWithData(NSData(data: data))" in view,
+           "ArtworkRequest should deliver accepted data at most once")
+    expect("NSData(contentsOfURL: imgURL)" not in view and
+           "ArtworkRequest(URL: imgURL" in view and "request.start()" in view,
+           "ViewController should replace unbounded artwork buffering with ArtworkRequest")
     expect("dispatch_get_global_queue" in view and "dispatch_get_main_queue()" in view,
            "ViewController should fetch artwork off the main queue and update UI on the main queue")
-    expect("tableView.indexPathForCell(cell)" in view and
-           "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view,
-           "ViewController should only apply async artwork to cells still representing the same index path")
+    expect("let maximumArtworkDimension = 8192" in view and
+           "let maximumArtworkPixelCount = 16 * 1024 * 1024" in view,
+           "ViewController should retain reviewed artwork dimension limits")
+    expect("let maximumArtworkURLLength = 2048" in view and
+           "URL.fragment == nil" in view and
+           "urlString.utf8.count <= maximumArtworkURLLength" in view,
+           "ViewController should reject fragmented and oversized artwork URLs")
+    expect("func canDisplayArtworkDimensions(width: Int, height: Int) -> Bool" in view and
+           "width > 0 && height > 0" in view and
+           "width <= maximumArtworkDimension && height <= maximumArtworkDimension" in view and
+           "width <= maximumArtworkPixelCount / height" in view and
+           "width * height" not in view,
+           "ViewController should validate artwork dimensions with overflow-safe arithmetic")
+    expect("func isAcceptableArtworkImage(image: UIImage) -> Bool" in view and
+           "CGImageGetWidth(cgImage)" in view and "CGImageGetHeight(cgImage)" in view,
+           "ViewController should derive artwork dimensions from the constructed image")
+    expect("import ImageIO" in view and
+           "func isAcceptableArtworkData(data: NSData) -> Bool" in view and
+           "CGImageSourceCopyPropertiesAtIndex" in view and
+           "guard controller.isAcceptableArtworkData(data)" in view,
+           "ViewController should inspect artwork metadata before UIImage decoding")
+    expect("let maximumResultCount = 200" in view and
+           "resultsArray.subarrayWithRange" in view,
+           "ViewController should bound result rows before table rendering")
+    expect("func cancel()" in view and
+           "var artworkRequests = [NSIndexPath: ArtworkRequest]()" in view and
+           "func cancelArtworkRequests()" in view and
+           "artworkGeneration" in view,
+           "ViewController should own and cancel artwork work across result generations")
+    metadata_guard = view.find("guard controller.isAcceptableArtworkData(data)")
+    image_guard = view.find("image = UIImage(data: data) where controller.isAcceptableArtworkImage(image)", metadata_guard)
+    main_publish = view.find("dispatch_async(dispatch_get_main_queue())", image_guard)
+    cell_publish = view.find("targetCell.imageView?.image = image", main_publish)
+    expect(-1 not in (metadata_guard, image_guard, main_publish, cell_publish) and
+           metadata_guard < image_guard < main_publish < cell_publish,
+           "ViewController should reject oversized artwork before main-thread cell publication")
+    expect("targetTableView.indexPathForCell(targetCell)" in view and
+           "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view and
+           "currentArtworkURL = controller.artworkURLForRow(indexPath)" in view and
+           "currentArtworkURL.isEqual(imgURL)" in view,
+           "ViewController should only apply async artwork to cells still representing the same current result")
     expect("@testable import SwiftExample" in tests, "SwiftExampleTests should import app code testably")
     expect("testSafeArtworkURLAcceptsHTTPSMZStaticHosts" in tests, "SwiftExampleTests should cover allowed artwork URLs")
     expect("testSafeArtworkURLRejectsUntrustedSchemesAndHosts" in tests, "SwiftExampleTests should cover rejected artwork URLs")
+    expect("testArtworkURLForRowTracksCurrentResultIdentity" in tests and
+           "testArtworkURLForRowRejectsMissingAndUnsafeRows" in tests,
+           "SwiftExampleTests should cover current-row artwork identity")
+    for token in (
+        "testArtworkResponseValidationAcceptsBoundedImages",
+        "testArtworkResponseValidationRejectsStatusTypeAndOversize",
+        "testArtworkResponseBufferRejectsOversizeChunks",
+        "testArtworkCompletionIsIdempotent",
+        "testArtworkDimensionsAcceptExactLimits",
+        "testArtworkDimensionsRejectInvalidAxes",
+        "testArtworkDimensionsRejectTotalPixelOverflow",
+        "testSafeArtworkURLRejectsUserinfoAndExplicitPorts",
+        "testSearchTermValidationRejectsEmptyControlAndOversizedInput",
+        "testSafeArtworkURLRejectsFragmentsAndOversizedURLs",
+        "testArtworkMetadataRejectsPixelBombBeforeImageDecode",
+        "testResultArrayIsBounded",
+        "testArtworkCancellationCompletesWithoutData",
+    ):
+        expect(token in tests, "SwiftExampleTests should cover {}".format(token))
+    for boundary in (
+        "canDisplayArtworkDimensions(8192, height: 2048)",
+        "canDisplayArtworkDimensions(4096, height: 4096)",
+        "canDisplayArtworkDimensions(8193, height: 1)",
+        "canDisplayArtworkDimensions(1, height: 8193)",
+        "canDisplayArtworkDimensions(8192, height: 2049)",
+        "canDisplayArtworkDimensions(Int.max, height: Int.max)",
+    ):
+        expect(boundary in tests,
+               "SwiftExampleTests should preserve artwork dimension boundary {}".format(boundary))
+    expect('URL: "https://example.com/artwork.png"' in tests,
+           "SwiftExampleTests should reject artwork responses redirected to untrusted hosts")
+    for authority_boundary in (
+        "https://user@is1-ssl.mzstatic.com/artwork.png",
+        "https://user:credential@is1-ssl.mzstatic.com/artwork.png",
+        "https://is1-ssl.mzstatic.com:443/artwork.png",
+    ):
+        expect(authority_boundary in tests,
+               "SwiftExampleTests should reject artwork authority {}".format(authority_boundary))
     expect("XCTAssertNotNil" in tests and "XCTAssertNil" in tests, "SwiftExampleTests should assert artwork URL boundaries")
     expect("testAPIResultsReplaceTableDataWhenResultsArrayPresent" in tests,
            "SwiftExampleTests should cover accepted API result arrays")
@@ -348,12 +532,34 @@ def check_docs():
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     bounded_response_plan = read_text("docs/plans/2026-06-10-bounded-api-response.md")
     active_connection_plan = read_text("docs/plans/2026-06-12-active-api-connection.md")
+    artwork_identity_plan = read_text("docs/plans/2026-06-13-artwork-result-identity-guard.md")
+    bounded_artwork_plan = read_text("docs/plans/2026-06-13-bounded-artwork-response.md")
+    location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
+    artwork_dimension_plan = read_text("docs/plans/2026-06-14-artwork-pixel-dimension-boundary.md")
+    artwork_authority_plan = read_text("docs/plans/2026-06-14-artwork-authority-boundary.md")
+    search_authority_plan = read_text("docs/plans/2026-06-14-search-response-authority-boundary.md")
+    search_request_plan = read_text("docs/plans/2026-06-17-001-fix-search-request-transport-plan.md")
+    make_root_override_plan = read_text(
+        "docs/plans/2026-06-17-002-fix-make-root-override-protection-plan.md"
+    )
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
+    make_lines = [line.strip() for line in makefile.splitlines()]
 
-    expect(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
-           "Makefile should expose lint, test, build, and check verification gates")
+    expect(".PHONY: build check lint test" in makefile and
+           make_lines.count("override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))") == 1 and
+           not any(line.startswith("ROOT :=") for line in make_lines) and
+           "lint test build: check" in makefile and
+           'python3 "$(ROOT)/scripts/check-baseline.py"' in makefile and
+           'python3 "$(ROOT)/scripts/test-make-root-override-contract.py"' in makefile and
+           "python3 scripts/check-baseline.py" not in makefile,
+           "Makefile should expose location-independent lint, test, build, and check verification gates")
+
+    expect("status: completed" in make_root_override_plan and
+           "hostile `ROOT=/tmp` override" in make_root_override_plan and
+           "absolute Makefile gate passed from `/tmp`" in make_root_override_plan,
+           "Make root override plan should record completed hostile-override verification")
 
     for text_name, text in (
         ("README.md", readme),
@@ -371,9 +577,20 @@ def check_docs():
         expect("async artwork" in lowered, "{} should document async artwork loading".format(text_name))
         expect("github actions" in lowered, "{} should document hosted static verification".format(text_name))
         expect("active connection" in lowered, "{} should document overlapping request ownership".format(text_name))
+        expect("artwork result identity" in lowered, "{} should document stale artwork result rejection".format(text_name))
+        expect("bounded artwork" in lowered, "{} should document bounded artwork responses".format(text_name))
+        expect("artwork" in lowered and "megapixel" in lowered,
+               "{} should document artwork pixel dimension limits".format(text_name))
+        expect("userinfo" in lowered and "explicit port" in lowered,
+               "{} should document artwork authority limits".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
+    expect("absolute makefile path" in readme.lower() and
+           "hostile `root` command-line override" in readme.lower() and
+           "location-independent" in changes.lower() and
+           "hostile `root=/tmp` override" in changes.lower(),
+           "README and CHANGES should document authoritative location-independent Make verification")
     expect("make lint" in vision and "make test" in vision and "make build" in vision,
            "VISION should document the standard local verification gates")
     expect("make lint" in changes and "make test" in changes and "make build" in changes,
@@ -417,8 +634,143 @@ def check_docs():
            "hosted validation plan should be marked completed")
     expect("status: completed" in bounded_response_plan and "1 MiB" in bounded_response_plan,
            "bounded API response plan should be marked completed")
-    expect("status: completed" in active_connection_plan and "mutation" in active_connection_plan.lower(),
-           "active API connection plan should record completed mutation verification")
+    expect("status: completed" in artwork_identity_plan and "All four Make gates" in artwork_identity_plan and
+           "hostile mutations" in artwork_identity_plan.lower(),
+           "artwork result identity plan should record completed verification")
+    artwork_dimension_verification = markdown_section(artwork_dimension_plan, "Verification Results")
+    expect("status: completed" in artwork_dimension_plan and
+           "all six isolated hostile mutations were rejected" in artwork_dimension_verification.lower() and
+           "Xcode was unavailable" in artwork_dimension_verification and
+           "No credentials or signing material" in artwork_dimension_verification,
+           "artwork dimension plan should record completed local verification")
+    expect("over-16-megapixel" in changes and
+           "16-megapixel total" in security and
+           "16 megapixels" in vision and
+           "overflow-safe artwork dimension checks" in read_text("AGENTS.md"),
+           "artwork dimension guidance should remain synchronized")
+    expect("status: completed" in artwork_authority_plan and
+           "Verification Completed" in artwork_authority_plan and
+           "hostile mutations" in artwork_authority_plan.lower() and
+           "userinfo" in artwork_authority_plan.lower() and
+           "explicit port" in artwork_authority_plan.lower(),
+           "artwork authority plan should record completed verification")
+    expect("status: completed" in search_authority_plan and
+           "Verification Completed" in search_authority_plan and
+           "hostile mutations" in search_authority_plan.lower() and
+           "userinfo" in search_authority_plan.lower() and
+           "explicit port" in search_authority_plan.lower() and
+           "external-directory Make gate" in search_authority_plan,
+           "search response authority plan should record completed verification")
+    expect("exact final HTTPS `itunes.apple.com/search`" in readme and
+           "final iTunes search response" in security and
+           "final search response authority" in vision and
+           "exact final HTTPS iTunes search endpoint" in changes,
+           "project guidance should document the search response authority boundary")
+    expect("R1. Every iTunes search request must ignore local cache data." in search_request_plan and
+           "R2. Every iTunes search request must use a 15-second timeout." in search_request_plan and
+           "ReloadIgnoringLocalCacheData" in search_request_plan and
+           "URLSession" in search_request_plan,
+           "search request transport plan should preserve the approved policy and modernization boundary")
+    expect("15-second uncached request policy" in readme and
+           "uncached 15-second search request" in security and
+           "15-second timeout and ignores local cache data" in vision and
+           "uncached 15-second request policy" in changes and
+           "uncached 15-second iTunes search requests" in read_text("AGENTS.md"),
+           "project guidance should document the bounded search request policy")
+    search_request_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", search_request_plan
+    )
+    search_request_work = markdown_section(search_request_plan, "Work Completed")
+    search_request_verification = markdown_section(
+        search_request_plan, "Verification Completed"
+    )
+    expect(search_request_status == ["completed"] and bool(search_request_work),
+           "search request transport plan should record completed status and work")
+    expect(bool(search_request_verification) and not re.search(
+        r"(?i)\b(?:pending|todo|tbd|not run)\b", search_request_verification
+    ), "search request transport plan should record finished verification")
+    for evidence in [
+        "make check",
+        "absolute Makefile gate passed from `/tmp`",
+        "Seven isolated hostile mutations were rejected",
+        "generated-artifact",
+        "secret-signature",
+        "27660232377",
+        "27660233808",
+        "xcodebuild` was unavailable",
+    ]:
+        expect(evidence in search_request_verification,
+               "search request transport plan should preserve verification evidence: {}".format(evidence))
+    bounded_artwork_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", bounded_artwork_plan
+    )
+    bounded_artwork_work = markdown_section(bounded_artwork_plan, "Work Completed")
+    bounded_artwork_verification = markdown_section(
+        bounded_artwork_plan, "Verification Completed"
+    )
+    expect(bounded_artwork_status == ["completed"] and bool(bounded_artwork_work),
+           "bounded artwork plan should record one completed status and completed work")
+    expect(bool(bounded_artwork_verification) and not re.search(
+        r"(?i)\b(?:pending|todo|tbd|not run)\b", bounded_artwork_verification
+    ), "bounded artwork plan should record finished verification without pending markers")
+    for evidence in [
+        "make lint",
+        "make test",
+        "make build",
+        "make check",
+        "python3 -m py_compile scripts/check-baseline.py",
+        "git diff --check",
+        "Eight isolated hostile mutations",
+        "Xcode was unavailable",
+    ]:
+        expect(evidence in bounded_artwork_verification,
+               "bounded artwork plan should preserve verification evidence: {}".format(evidence))
+    location_make_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", location_independent_make_plan
+    )
+    location_make_verification = markdown_section(
+        location_independent_make_plan, "Verification Completed"
+    )
+    expect(location_make_status == ["completed"] and
+           "All four Make gates passed from the checkout" in location_make_verification and
+           "All four Make gates passed from `/tmp` through the absolute Makefile path" in location_make_verification and
+           "python3 -m py_compile scripts/check-baseline.py" in location_make_verification and
+           "project metadata parsing" in location_make_verification and
+           "git diff --check" in location_make_verification and
+           "`xcodebuild` was unavailable" in location_make_verification and
+           "Five isolated hostile mutations were rejected" in location_make_verification and
+           re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", location_make_verification) is None,
+           "location-independent Make plan should record completed status and actual local verification")
+    active_connection_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", active_connection_plan
+    )
+    active_connection_work = markdown_section(active_connection_plan, "Work Completed")
+    active_connection_verification = markdown_section(
+        active_connection_plan, "Verification Completed"
+    )
+    expect(active_connection_status == ["completed"] and bool(active_connection_work),
+           "active API connection plan should record one completed status and completed work")
+    expect(bool(active_connection_verification) and not re.search(
+        r"(?i)\b(?:pending|todo|tbd|not run)\b", active_connection_verification
+    ), "active API connection plan should record finished verification without pending markers")
+    for evidence in [
+        "make check",
+        "make lint",
+        "make test",
+        "make build",
+        "python3 -m py_compile scripts/check-baseline.py",
+        "git diff --check",
+        "27395635063",
+        "27395639989",
+        "27395656424",
+        "27402323954",
+        "ffd99e770c2fcf3923af8a527b60c3f58274b52a",
+        "5a179a2125db621355b8a9e062a9de20d1ac875d",
+        "activeConnection?.cancel()",
+        "if !isActiveConnection(connection)",
+    ]:
+        expect(evidence in active_connection_verification,
+               "active API connection plan should preserve verification evidence: {}".format(evidence))
     expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and

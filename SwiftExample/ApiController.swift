@@ -8,30 +8,68 @@
 
 import UIKit
 
-protocol APIControllerProtocol {
+protocol APIControllerProtocol: class {
     func didRecieveAPIResults(results: NSDictionary)
 }
 
 class APIController: NSObject {
     let maximumResponseSize = 1024 * 1024
+    let maximumSearchTermLength = 200
+    let maximumSearchTermByteLength = 800
     var data: NSMutableData = NSMutableData()
     var responseAccepted = false
     var requestCompleted = false
     var activeConnection: NSURLConnection?
-    var delegate: APIControllerProtocol?
-    
-    func searchItunesFor(searchTerm: String) {
+    weak var delegate: APIControllerProtocol?
+
+    class func isTrustedSearchURL(URL: NSURL) -> Bool {
+        guard URL.user == nil && URL.password == nil && URL.port == nil && URL.fragment == nil else {
+            return false
+        }
+
+        if let scheme = URL.scheme?.lowercaseString,
+            host = URL.host?.lowercaseString,
+            path = URL.path {
+                return scheme == "https" && host == "itunes.apple.com" && path == "/search"
+        }
+
+        return false
+    }
+
+    func requestForSearchURL(URL: NSURL) -> NSURLRequest {
+        return NSURLRequest(
+            URL: URL,
+            cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData,
+            timeoutInterval: 15
+        )
+    }
+
+    func isAcceptableSearchTerm(searchTerm: String) -> Bool {
+        let trimmedSearchTerm = searchTerm.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+        return !trimmedSearchTerm.isEmpty &&
+            searchTerm.rangeOfCharacterFromSet(NSCharacterSet.controlCharacterSet()) == nil &&
+            searchTerm.characters.count <= maximumSearchTermLength &&
+            searchTerm.utf8.count <= maximumSearchTermByteLength
+    }
+
+    func cancel() {
         activeConnection?.cancel()
         activeConnection = nil
-        requestCompleted = false
+        requestCompleted = true
         responseAccepted = false
         data = NSMutableData()
+    }
+
+    func searchItunesFor(searchTerm: String) {
+        cancel()
+        requestCompleted = false
         let allowedCharacters = NSCharacterSet(charactersInString: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 
-        if let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters(allowedCharacters) {
+        if isAcceptableSearchTerm(searchTerm),
+            let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters(allowedCharacters) {
             let urlPath = "https://itunes.apple.com/search?term=\(escapedSearchTerm)&media=software"
             if let url = NSURL(string: urlPath) {
-                let request: NSURLRequest = NSURLRequest(URL: url)
+                let request = requestForSearchURL(url)
                 if let connection = NSURLConnection(request: request, delegate: self, startImmediately: false) {
                     activeConnection = connection
                     connection.start()
@@ -57,6 +95,10 @@ class APIController: NSObject {
     func isAcceptableResponse(response: NSURLResponse) -> Bool {
         guard let httpResponse = response as? NSHTTPURLResponse where
             httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+            return false
+        }
+
+        guard let responseURL = response.URL where APIController.isTrustedSearchURL(responseURL) else {
             return false
         }
 

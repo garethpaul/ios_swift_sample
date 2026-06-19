@@ -29,16 +29,24 @@ Helpful reports include:
 - No credentials are required for the current sample. Do not commit API keys, tokens, private endpoints, signing material, `.env` files, or machine-local Xcode configuration.
 - URL construction, connection failure handling, JSON parsing, table rendering, and artwork loading should avoid forced unwraps and should return an empty or partially rendered state when data is malformed.
 - API completion should clear the retained response buffer after delivering parsed or empty results.
+- The final iTunes search response should retain HTTPS `itunes.apple.com/search`
+  without userinfo, an explicit port, or a fragment before body acceptance.
 - API responses should require a successful status and JSON-compatible MIME
   type, stay within a 1 MiB body limit, and deliver at most one completion when
   cancellation and failure callbacks overlap.
 - The active connection owns shared response state; starting a replacement
   search cancels it and stale connection callbacks must be ignored.
+- Preserve the uncached 15-second search request policy so stale protocol cache
+  data and the platform default timeout do not weaken the request lifecycle.
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
 - The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.
-- Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path.
-- Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts instead of accepting arbitrary schemes or hosts. The artwork URL tests should cover allowed hosts and rejected schemes/hosts.
+- Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path and artwork result identity.
+- Bounded artwork responses should require a successful JPEG or PNG response,
+  stop after 1 MiB, and complete at most once before image decoding.
+- Artwork images should remain within the reviewed 8192-pixel axis and
+  16-megapixel total before main-thread cell publication.
+- Artwork URL values parsed from JSON should stay constrained to HTTPS `mzstatic.com` hosts without userinfo or an explicit port instead of accepting arbitrary authorities. The artwork URL tests should cover allowed hosts and rejected schemes, hosts, userinfo, and explicit ports.
 - Run `make check` after changing Swift sources, project metadata, committed plists, storyboards, assets, or security docs.
 - The pinned macOS GitHub Actions workflow is read-only and parses project
   metadata without calling the iTunes Search API, fetching artwork, running

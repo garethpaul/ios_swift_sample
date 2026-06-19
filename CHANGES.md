@@ -1,5 +1,39 @@
 # Changes
 
+## 2026-06-19
+
+- Rejected empty, control-bearing, over-200-character, and over-800-byte iTunes
+  search terms, and limited rendered API results to 200 rows.
+- Rejected fragmented or over-2048-byte artwork URLs and inspected image
+  metadata before decoding to stop compressed pixel bombs at the parsing seam.
+- Added explicit API/artwork cancellation, result-generation ownership, stale
+  callback rejection, and a weak API delegate to avoid background work and
+  retain cycles after navigation or reloads.
+
+## 2026-06-17
+
+- Applied an uncached 15-second request policy to every iTunes search before
+  starting its active connection.
+- Protected checkout-relative verification from a hostile `ROOT=/tmp` override.
+
+## 2026-06-14
+
+- Required the exact final HTTPS iTunes search endpoint before accepting JSON
+  response metadata or body chunks.
+- Rejected artwork URL userinfo and explicit ports for initial and final
+  `mzstatic.com` response authorities.
+- Rejected artwork with nonpositive, over-8192-axis, or over-16-megapixel
+  dimensions before assigning decoded images to reusable cells.
+
+## 2026-06-13
+
+- Made all Make verification aliases location-independent when invoked through
+  an absolute Makefile path.
+- Replaced unbounded artwork buffering with a bounded artwork response loader
+  that accepts successful JPEG or PNG bodies up to 1 MiB and completes once.
+- Guarded async artwork result identity against current row data before image
+  assignment after API reloads.
+
 ## 2026-06-12
 
 - Bound shared response state to one active connection, canceling replaced

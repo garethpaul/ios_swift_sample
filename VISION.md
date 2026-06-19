@@ -32,15 +32,24 @@ Priority:
   missing artwork from crashing the sample
 - Clear the retained response buffer after parsed or empty API completion
 - Bound successful JSON-compatible API responses to 1 MiB and one completion
+- Keep the final search response authority on exact HTTPS
+  `itunes.apple.com/search` without userinfo, an explicit port, or a fragment
 - Keep shared response state owned by one active connection and ignore stale callbacks
+- Keep a policy where each iTunes search request uses a 15-second timeout and ignores local cache data
+  before starting the active connection
 - Keep API result UI updates on the main thread
 - Clear the network activity indicator when the results view disappears
 - Guard table indexes before reading parsed result rows
 - Keep result array tests covering accepted payloads and malformed payloads that
   clear stale table data
 - Keep async artwork loading off the main thread and guarded against cell reuse
-- Keep artwork loading restricted to HTTPS `mzstatic.com` URLs from the iTunes response
-- Keep artwork URL tests covering allowed hosts and rejected schemes/hosts
+- Keep artwork result identity aligned with the current API row after reloads
+- Keep bounded artwork responses limited to successful JPEG or PNG bodies of
+  at most 1 MiB and one completion
+- Keep artwork pixel dimensions within 8192 pixels per axis and 16 megapixels
+  total before reusable-cell publication
+- Keep artwork loading restricted to HTTPS `mzstatic.com` URLs without userinfo or an explicit port from the iTunes response
+- Keep artwork URL tests covering allowed hosts and rejected schemes, hosts, userinfo, and explicit ports
 - Keep screenshot and README aligned with app behavior
 - Avoid hardcoded private endpoints or credentials
 - Keep `make lint`, `make test`, `make build`, and `make check` available as

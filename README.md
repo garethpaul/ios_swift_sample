@@ -54,21 +54,33 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Open `SwiftExample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The sample queries the public HTTPS iTunes Search API and renders the JSON `results` array in a table view.
 - Network, URL, JSON, missing result, and missing artwork failures should return an empty or partially rendered table state instead of crashing.
-- API responses must use a successful status and JSON-compatible MIME type and
-  remain within a 1 MiB declared and streamed body limit. Cancellation and
+- API responses must retain the exact final HTTPS `itunes.apple.com/search`
+  endpoint, use a successful status and JSON-compatible MIME type, and remain
+  within a 1 MiB declared and streamed body limit. Cancellation and
   failure callbacks deliver at most one completion.
 - Starting a new search cancels the previous active connection, and stale
   callbacks cannot mutate or complete the replacement request.
+- Each search uses a 15-second uncached request policy so the sample does not
+  reuse protocol cache data or wait for the platform default timeout.
+- Search terms must be nonempty, free of control characters, at most 200
+  characters, and at most 800 UTF-8 bytes; rendered API result arrays are
+  capped at 200 entries.
 - API completion clears the retained response buffer after delivering parsed or empty results.
 - API results hop back to the main thread before updating table data, reloading the table, or clearing the network activity indicator.
 - The network activity indicator is also cleared when the results view disappears before completion.
 - Table rendering validates the row index before reading from the parsed results array.
 - Result array tests cover accepted API arrays and malformed payloads that should clear stale table data.
-- Async artwork loading accepts only HTTPS `mzstatic.com` artwork URLs from the iTunes response, clears reused image views before loading, fetches image data off the main thread, and applies images back on the main thread only if the cell still represents the same index path. Malformed or untrusted artwork URL values leave the image empty. Artwork URL tests cover allowed hosts and rejected schemes/hosts.
+- Async artwork loading accepts only HTTPS `mzstatic.com` artwork URLs within
+  2048 UTF-8 bytes and without userinfo, an explicit port, or a fragment. It
+  requires successful JPEG or PNG bodies no larger than 1 MiB, checks ImageIO
+  metadata before `UIImage` decoding, and rejects images over 8192 pixels per
+  axis or 16 megapixels total. Navigation and result replacement cancel owned
+  artwork work, and only the current result generation may publish a matching
+  cell image on the main thread after rechecking artwork result identity.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, network activity indicator lifecycle, main thread UI result handling, table index guards, result array tests, async artwork loading, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, network activity indicator lifecycle, main thread UI result handling, table index guards, result array tests, async artwork loading, bounded artwork response handling, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline on hosts without the legacy Xcode toolchain, keeping the standard
   local gate commands available without claiming to replace Xcode verification.
@@ -76,6 +88,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   `SwiftExample.xcodeproj` with `xcodebuild -list`. This hosted validation does
   not call the iTunes Search API, fetch artwork, run simulator interaction, or
   use signing material.
+- The maintained gate is static because the checked-in project targets a legacy
+  Swift/Xcode era. Live iTunes, XCTest, simulator/device, decoder, and signing
+  behavior remain explicit manual validation risks.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -95,6 +110,9 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing changes to Swift sources, plists, storyboards, assets, Xcode project metadata, or security docs.
+- The same gates may be invoked through an absolute Makefile path from another
+  directory; verification resolves the checker relative to the checkout and
+  ignores a hostile `ROOT` command-line override.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.

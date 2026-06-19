@@ -46,6 +46,13 @@ public iTunes Search API and renders result artwork.
 - Do not add private endpoints, API credentials, tokens, signing material, `.env` files, or machine-local Xcode configuration to source control.
 - Keep the sample on the documented public HTTPS iTunes Search API unless endpoint changes are reviewed separately. Network, artwork URL, and JSON failure handling should avoid console logging private data, arbitrary URL schemes, and forced unwraps.
 - Keep response buffers and completion state owned by one active connection; cancel replacements and ignore stale delegate callbacks.
+- Preserve uncached 15-second iTunes search requests before active connection
+  creation; keep broader URLSession migration in a dedicated modernization
+  change.
+- Require the final iTunes search response to retain exact HTTPS
+  `itunes.apple.com/search` without userinfo, an explicit port, or a fragment.
+- Preserve overflow-safe artwork dimension checks before assigning downloaded
+  images to reusable cells.
 - This is a legacy Apple platform sample. Xcode, Swift, and deployment target
   versions must remain aligned with the checked-in project.
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing changes to Swift sources, plists, storyboards, assets, Xcode project metadata, or security docs.
