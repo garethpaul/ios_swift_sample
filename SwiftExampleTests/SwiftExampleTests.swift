@@ -45,6 +45,16 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertEqual(request.timeoutInterval, 15)
     }
 
+    func testSearchTermValidationRejectsEmptyControlAndOversizedInput() {
+        let controller = APIController()
+
+        XCTAssertTrue(controller.isAcceptableSearchTerm("Angry Birds"))
+        XCTAssertFalse(controller.isAcceptableSearchTerm(""))
+        XCTAssertFalse(controller.isAcceptableSearchTerm("   \n"))
+        XCTAssertFalse(controller.isAcceptableSearchTerm(String(count: controller.maximumSearchTermLength + 1, repeatedValue: Character("a"))))
+        XCTAssertFalse(controller.isAcceptableSearchTerm("a" + String(count: controller.maximumSearchTermByteLength, repeatedValue: Character("\u{0301}"))))
+    }
+
     func testAPIResponseValidationRejectsStatusTypeAndOversize() {
         let api = APIController()
         XCTAssertFalse(api.isAcceptableResponse(response(500, mimeType: "application/json", contentLength: 1024)))
@@ -108,6 +118,13 @@ class SwiftExampleTests: XCTestCase {
         XCTAssertNil(controller.safeArtworkURLFromString("https://user@is1-ssl.mzstatic.com/artwork.png"))
         XCTAssertNil(controller.safeArtworkURLFromString("https://user:credential@is1-ssl.mzstatic.com/artwork.png"))
         XCTAssertNil(controller.safeArtworkURLFromString("https://is1-ssl.mzstatic.com:443/artwork.png"))
+    }
+
+    func testSafeArtworkURLRejectsFragmentsAndOversizedURLs() {
+        let controller = SearchResultsViewController()
+
+        XCTAssertNil(controller.safeArtworkURLFromString("https://is1-ssl.mzstatic.com/artwork.png#fragment"))
+        XCTAssertNil(controller.safeArtworkURLFromString("https://is1-ssl.mzstatic.com/" + String(count: controller.maximumArtworkURLLength, repeatedValue: Character("a"))))
     }
 
     func testArtworkURLForRowTracksCurrentResultIdentity() {
@@ -191,6 +208,45 @@ class SwiftExampleTests: XCTestCase {
 
         XCTAssertFalse(controller.canDisplayArtworkDimensions(8192, height: 2049))
         XCTAssertFalse(controller.canDisplayArtworkDimensions(Int.max, height: Int.max))
+    }
+
+    func testArtworkMetadataRejectsPixelBombBeforeImageDecode() {
+        let controller = SearchResultsViewController()
+        let oversizedPNG = NSData(bytes: [
+            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+            0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x23, 0x29, 0x00, 0x00, 0x23, 0x29,
+            0x08, 0x02, 0x00, 0x00, 0x00
+        ] as [UInt8], length: 29)
+
+        XCTAssertFalse(controller.isAcceptableArtworkData(oversizedPNG))
+    }
+
+    func testResultArrayIsBounded() {
+        let controller = SearchResultsViewController()
+        let results = NSMutableArray()
+        for index in 0...controller.maximumResultCount {
+            results.addObject(NSDictionary(object: index, forKey: "trackId"))
+        }
+
+        controller.didRecieveAPIResults(NSDictionary(object: results, forKey: "results"))
+
+        XCTAssertEqual(controller.tableData.count, controller.maximumResultCount)
+    }
+
+    func testArtworkCancellationCompletesWithoutData() {
+        var completionCount = 0
+        var completionData: NSData? = NSData()
+        let request = artworkRequest {
+            completionCount += 1
+            completionData = $0
+        }
+
+        request.cancel()
+        request.completeWithData(NSData())
+
+        XCTAssertEqual(completionCount, 1)
+        XCTAssertNil(completionData)
     }
 
     func testArtworkCompletionIsIdempotent() {

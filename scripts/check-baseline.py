@@ -245,13 +245,21 @@ def check_first_party_swift():
 
     expect("https://itunes.apple.com/search" in api_raw, "ApiController should keep the public HTTPS iTunes search endpoint")
     expect("NSCharacterSet(charactersInString:" in api, "ApiController should use an explicit search-term encoding allowlist")
-    expect("if let escapedSearchTerm" in api, "ApiController should handle failed term encoding")
+    expect("let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters" in api,
+           "ApiController should handle failed term encoding")
     expect("if let url = NSURL(string: urlPath)" in api, "ApiController should handle failed URL creation")
     expect("if let connection = NSURLConnection" in api, "ApiController should handle failed connection creation")
     expect("func requestForSearchURL(URL: NSURL) -> NSURLRequest" in api and
            "cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData" in api and
            "timeoutInterval: 15" in api,
            "ApiController should construct uncached search requests with a 15-second timeout")
+    expect("let maximumSearchTermLength = 200" in api and
+           "let maximumSearchTermByteLength = 800" in api and
+           "func isAcceptableSearchTerm(searchTerm: String) -> Bool" in api and
+           "controlCharacterSet" in api and
+           "searchTerm.characters.count <= maximumSearchTermLength" in api and
+           "searchTerm.utf8.count <= maximumSearchTermByteLength" in api,
+           "ApiController should reject empty, control-bearing, and oversized search terms")
     search_method = api.split("func searchItunesFor", 1)[-1].split(
         "func completeWithResults", 1
     )[0]
@@ -261,6 +269,8 @@ def check_first_party_swift():
            "NSURLRequest(URL: url)" not in search_method,
            "ApiController should apply the bounded search request policy before connection creation")
     expect("func completeWithResults(results: NSDictionary)" in api, "ApiController should centralize API completion")
+    expect("protocol APIControllerProtocol: class" in api and "weak var delegate: APIControllerProtocol?" in api,
+           "ApiController should not retain its owning view controller through the delegate")
     expect("delegate?.didRecieveAPIResults(results)" in api, "ApiController should deliver parsed results through completion helper")
     expect("completeWithResults(NSDictionary())" in api, "ApiController should return empty results on failure")
     expect("completeWithResults(jsonResult)" in api, "ApiController should deliver parsed JSON through completion helper")
@@ -404,6 +414,10 @@ def check_first_party_swift():
     expect("let maximumArtworkDimension = 8192" in view and
            "let maximumArtworkPixelCount = 16 * 1024 * 1024" in view,
            "ViewController should retain reviewed artwork dimension limits")
+    expect("let maximumArtworkURLLength = 2048" in view and
+           "URL.fragment == nil" in view and
+           "urlString.utf8.count <= maximumArtworkURLLength" in view,
+           "ViewController should reject fragmented and oversized artwork URLs")
     expect("func canDisplayArtworkDimensions(width: Int, height: Int) -> Bool" in view and
            "width > 0 && height > 0" in view and
            "width <= maximumArtworkDimension && height <= maximumArtworkDimension" in view and
@@ -413,10 +427,25 @@ def check_first_party_swift():
     expect("func isAcceptableArtworkImage(image: UIImage) -> Bool" in view and
            "CGImageGetWidth(cgImage)" in view and "CGImageGetHeight(cgImage)" in view,
            "ViewController should derive artwork dimensions from the constructed image")
-    image_guard = view.find("guard let image = UIImage(data: data) where controller.isAcceptableArtworkImage(image)")
+    expect("import ImageIO" in view and
+           "func isAcceptableArtworkData(data: NSData) -> Bool" in view and
+           "CGImageSourceCopyPropertiesAtIndex" in view and
+           "guard controller.isAcceptableArtworkData(data)" in view,
+           "ViewController should inspect artwork metadata before UIImage decoding")
+    expect("let maximumResultCount = 200" in view and
+           "resultsArray.subarrayWithRange" in view,
+           "ViewController should bound result rows before table rendering")
+    expect("func cancel()" in view and
+           "var artworkRequests = [NSIndexPath: ArtworkRequest]()" in view and
+           "func cancelArtworkRequests()" in view and
+           "artworkGeneration" in view,
+           "ViewController should own and cancel artwork work across result generations")
+    metadata_guard = view.find("guard controller.isAcceptableArtworkData(data)")
+    image_guard = view.find("image = UIImage(data: data) where controller.isAcceptableArtworkImage(image)", metadata_guard)
     main_publish = view.find("dispatch_async(dispatch_get_main_queue())", image_guard)
     cell_publish = view.find("targetCell.imageView?.image = image", main_publish)
-    expect(-1 not in (image_guard, main_publish, cell_publish) and image_guard < main_publish < cell_publish,
+    expect(-1 not in (metadata_guard, image_guard, main_publish, cell_publish) and
+           metadata_guard < image_guard < main_publish < cell_publish,
            "ViewController should reject oversized artwork before main-thread cell publication")
     expect("targetTableView.indexPathForCell(targetCell)" in view and
            "visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row" in view and
@@ -438,6 +467,11 @@ def check_first_party_swift():
         "testArtworkDimensionsRejectInvalidAxes",
         "testArtworkDimensionsRejectTotalPixelOverflow",
         "testSafeArtworkURLRejectsUserinfoAndExplicitPorts",
+        "testSearchTermValidationRejectsEmptyControlAndOversizedInput",
+        "testSafeArtworkURLRejectsFragmentsAndOversizedURLs",
+        "testArtworkMetadataRejectsPixelBombBeforeImageDecode",
+        "testResultArrayIsBounded",
+        "testArtworkCancellationCompletesWithoutData",
     ):
         expect(token in tests, "SwiftExampleTests should cover {}".format(token))
     for boundary in (

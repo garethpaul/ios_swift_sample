@@ -5,6 +5,7 @@
 
 import UIKit
 import QuartzCore
+import ImageIO
 
 class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
     let maximumResponseSize = 1024 * 1024
@@ -34,8 +35,13 @@ class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
         connection?.start()
     }
 
+    func cancel() {
+        connection?.cancel()
+        completeWithData(nil)
+    }
+
     class func isTrustedURL(URL: NSURL) -> Bool {
-        guard URL.user == nil && URL.password == nil && URL.port == nil else {
+        guard URL.user == nil && URL.password == nil && URL.port == nil && URL.fragment == nil else {
             return false
         }
 
@@ -85,10 +91,18 @@ class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
     }
 
     func connection(connection: NSURLConnection, didFailWithError error: NSError) {
+        if self.connection !== connection {
+            return
+        }
+
         completeWithData(nil)
     }
 
     func connection(connection: NSURLConnection, didReceiveResponse response: NSURLResponse) {
+        if self.connection !== connection {
+            return
+        }
+
         data = NSMutableData()
         responseAccepted = isAcceptableResponse(response)
         if !responseAccepted {
@@ -98,6 +112,10 @@ class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
     }
 
     func connection(connection: NSURLConnection, didReceiveData chunk: NSData) {
+        if self.connection !== connection {
+            return
+        }
+
         if !canAppendArtworkData(chunk) {
             connection.cancel()
             completeWithData(nil)
@@ -108,6 +126,10 @@ class ArtworkRequest: NSObject, NSURLConnectionDataDelegate {
     }
 
     func connectionDidFinishLoading(connection: NSURLConnection) {
+        if self.connection !== connection {
+            return
+        }
+
         if !responseAccepted {
             completeWithData(nil)
             return
@@ -124,6 +146,10 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     var tableData: NSArray = NSArray()
     let maximumArtworkDimension = 8192
     let maximumArtworkPixelCount = 16 * 1024 * 1024
+    let maximumArtworkURLLength = 2048
+    let maximumResultCount = 200
+    var artworkGeneration = 0
+    var artworkRequests = [NSIndexPath: ArtworkRequest]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -134,7 +160,16 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
 
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
+        api.cancel()
+        cancelArtworkRequests()
         UIApplication.sharedApplication().networkActivityIndicatorVisible = false
+    }
+
+    func cancelArtworkRequests() {
+        for request in artworkRequests.values {
+            request.cancel()
+        }
+        artworkRequests.removeAll()
     }
     
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -173,6 +208,10 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     }
 
     func safeArtworkURLFromString(urlString: String) -> NSURL? {
+        guard urlString.utf8.count <= maximumArtworkURLLength else {
+            return nil
+        }
+
         if let url = NSURL(string: urlString) {
             if ArtworkRequest.isTrustedURL(url) {
                 return url
@@ -212,7 +251,20 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         )
     }
 
+    func isAcceptableArtworkData(data: NSData) -> Bool {
+        guard let source = CGImageSourceCreateWithData(data, nil),
+            properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as NSDictionary?,
+            width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
+            height = properties[kCGImagePropertyPixelHeight] as? NSNumber else {
+                return false
+        }
+
+        return canDisplayArtworkDimensions(width.integerValue, height: height.integerValue)
+    }
+
     func loadArtworkFromURL(imgURL: NSURL, forCell cell: UITableViewCell, tableView: UITableView, indexPath: NSIndexPath) {
+        artworkRequests[indexPath]?.cancel()
+        let generation = artworkGeneration
         if let request = ArtworkRequest(URL: imgURL, completion: { [weak self, weak cell, weak tableView] imgData in
             guard let controller = self,
                 targetCell = cell,
@@ -222,12 +274,14 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
             }
 
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-                guard let image = UIImage(data: data) where controller.isAcceptableArtworkImage(image) else {
+                guard controller.isAcceptableArtworkData(data),
+                    image = UIImage(data: data) where controller.isAcceptableArtworkImage(image) else {
                     return
                 }
 
                 dispatch_async(dispatch_get_main_queue()) {
-                    if let visibleIndexPath = targetTableView.indexPathForCell(targetCell)
+                    if controller.artworkGeneration == generation,
+                        let visibleIndexPath = targetTableView.indexPathForCell(targetCell)
                         where visibleIndexPath.section == indexPath.section && visibleIndexPath.row == indexPath.row,
                         currentArtworkURL = controller.artworkURLForRow(indexPath)
                         where currentArtworkURL.isEqual(imgURL) {
@@ -237,6 +291,7 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
                 }
             }
         }) {
+            artworkRequests[indexPath] = request
             request.start()
         }
     }
@@ -250,8 +305,11 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
         }
 
         // Store the results in our table data array
+        artworkGeneration += 1
+        cancelArtworkRequests()
         if let resultsArray = results["results"] as? NSArray {
-            self.tableData = resultsArray
+            let resultCount = min(resultsArray.count, maximumResultCount)
+            self.tableData = resultsArray.subarrayWithRange(NSMakeRange(0, resultCount))
         } else {
             self.tableData = NSArray()
         }

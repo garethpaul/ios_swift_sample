@@ -8,17 +8,19 @@
 
 import UIKit
 
-protocol APIControllerProtocol {
+protocol APIControllerProtocol: class {
     func didRecieveAPIResults(results: NSDictionary)
 }
 
 class APIController: NSObject {
     let maximumResponseSize = 1024 * 1024
+    let maximumSearchTermLength = 200
+    let maximumSearchTermByteLength = 800
     var data: NSMutableData = NSMutableData()
     var responseAccepted = false
     var requestCompleted = false
     var activeConnection: NSURLConnection?
-    var delegate: APIControllerProtocol?
+    weak var delegate: APIControllerProtocol?
 
     class func isTrustedSearchURL(URL: NSURL) -> Bool {
         guard URL.user == nil && URL.password == nil && URL.port == nil && URL.fragment == nil else {
@@ -41,16 +43,30 @@ class APIController: NSObject {
             timeoutInterval: 15
         )
     }
-    
-    func searchItunesFor(searchTerm: String) {
+
+    func isAcceptableSearchTerm(searchTerm: String) -> Bool {
+        let trimmedSearchTerm = searchTerm.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+        return !trimmedSearchTerm.isEmpty &&
+            searchTerm.rangeOfCharacterFromSet(NSCharacterSet.controlCharacterSet()) == nil &&
+            searchTerm.characters.count <= maximumSearchTermLength &&
+            searchTerm.utf8.count <= maximumSearchTermByteLength
+    }
+
+    func cancel() {
         activeConnection?.cancel()
         activeConnection = nil
-        requestCompleted = false
+        requestCompleted = true
         responseAccepted = false
         data = NSMutableData()
+    }
+
+    func searchItunesFor(searchTerm: String) {
+        cancel()
+        requestCompleted = false
         let allowedCharacters = NSCharacterSet(charactersInString: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 
-        if let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters(allowedCharacters) {
+        if isAcceptableSearchTerm(searchTerm),
+            let escapedSearchTerm = searchTerm.stringByAddingPercentEncodingWithAllowedCharacters(allowedCharacters) {
             let urlPath = "https://itunes.apple.com/search?term=\(escapedSearchTerm)&media=software"
             if let url = NSURL(string: urlPath) {
                 let request = requestForSearchURL(url)

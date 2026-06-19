@@ -62,12 +62,21 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   callbacks cannot mutate or complete the replacement request.
 - Each search uses a 15-second uncached request policy so the sample does not
   reuse protocol cache data or wait for the platform default timeout.
+- Search terms must be nonempty, free of control characters, at most 200
+  characters, and at most 800 UTF-8 bytes; rendered API result arrays are
+  capped at 200 entries.
 - API completion clears the retained response buffer after delivering parsed or empty results.
 - API results hop back to the main thread before updating table data, reloading the table, or clearing the network activity indicator.
 - The network activity indicator is also cleared when the results view disappears before completion.
 - Table rendering validates the row index before reading from the parsed results array.
 - Result array tests cover accepted API arrays and malformed payloads that should clear stale table data.
-- Async artwork loading accepts only HTTPS `mzstatic.com` artwork URLs without userinfo or an explicit port from the iTunes response, requires bounded artwork responses to be successful JPEG or PNG bodies no larger than 1 MiB, rejects images over 8192 pixels per axis or 16 megapixels total, clears reused image views before loading, decodes image data off the main thread, and applies images back on the main thread only if the cell still represents the same index path and artwork result identity. Malformed, oversized, or untrusted artwork values leave the image empty. Artwork URL tests cover allowed hosts and rejected schemes, hosts, userinfo, and explicit ports.
+- Async artwork loading accepts only HTTPS `mzstatic.com` artwork URLs within
+  2048 UTF-8 bytes and without userinfo, an explicit port, or a fragment. It
+  requires successful JPEG or PNG bodies no larger than 1 MiB, checks ImageIO
+  metadata before `UIImage` decoding, and rejects images over 8192 pixels per
+  axis or 16 megapixels total. Navigation and result replacement cancel owned
+  artwork work, and only the current result generation may publish a matching
+  cell image on the main thread after rechecking artwork result identity.
 
 ## Testing and Verification
 
@@ -79,6 +88,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   `SwiftExample.xcodeproj` with `xcodebuild -list`. This hosted validation does
   not call the iTunes Search API, fetch artwork, run simulator interaction, or
   use signing material.
+- The maintained gate is static because the checked-in project targets a legacy
+  Swift/Xcode era. Live iTunes, XCTest, simulator/device, decoder, and signing
+  behavior remain explicit manual validation risks.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

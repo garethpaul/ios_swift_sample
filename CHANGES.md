@@ -1,5 +1,15 @@
 # Changes
 
+## 2026-06-19
+
+- Rejected empty, control-bearing, over-200-character, and over-800-byte iTunes
+  search terms, and limited rendered API results to 200 rows.
+- Rejected fragmented or over-2048-byte artwork URLs and inspected image
+  metadata before decoding to stop compressed pixel bombs at the parsing seam.
+- Added explicit API/artwork cancellation, result-generation ownership, stale
+  callback rejection, and a weak API delegate to avoid background work and
+  retain cycles after navigation or reloads.
+
 ## 2026-06-17
 
 - Applied an uncached 15-second request policy to every iTunes search before
