@@ -2,6 +2,16 @@
 
 ## 2026-06-26
 
+- **2026-06-26 10:36 PDT — Priority: correctness.** Invalidated the artwork
+  result generation before view-disappearance cancellation so image decoding
+  already queued from a completed request cannot publish after navigation.
+  Updated `SwiftExample/ViewController.swift`, the baseline checker, mutation
+  regression, maintainer guidance, and the completed implementation plan.
+  All four local aliases, the hostile external-path gate, and three mutation
+  checks passed; Xcode execution remains a hosted macOS boundary. Finding:
+  cancelling owned requests alone cannot cancel decode work already dispatched.
+  Blockers: none. Next action: publish the PR, verify hosted gates, and merge
+  only the green SHA.
 - Made the static baseline reject permissive HTTP artwork authorities and
   publication that bypasses the current artwork result generation.
 - Added mutation regressions for both security-sensitive checks to `make check`.

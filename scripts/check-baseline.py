@@ -134,6 +134,7 @@ def check_required_files():
         "docs/plans/2026-06-14-artwork-authority-boundary.md",
         "docs/plans/2026-06-14-search-response-authority-boundary.md",
         "docs/plans/2026-06-17-001-fix-search-request-transport-plan.md",
+        "docs/plans/2026-06-26-artwork-disappearance-generation.md",
         "scripts/test-check-baseline.py",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
@@ -371,6 +372,13 @@ def check_first_party_swift():
            "super.viewWillDisappear(animated)" in view and
            "UIApplication.sharedApplication().networkActivityIndicatorVisible = false" in view,
            "ViewController should clear the network activity indicator when the view disappears")
+    view_disappearance = view.split("override func viewWillDisappear(animated: Bool)", 1)[1].split("func cancelArtworkRequests()", 1)[0]
+    generation_invalidation = view_disappearance.find("artworkGeneration += 1")
+    artwork_cancellation = view_disappearance.find("cancelArtworkRequests()")
+    expect(generation_invalidation != -1 and
+           artwork_cancellation != -1 and
+           generation_invalidation < artwork_cancellation,
+           "ViewController should invalidate queued artwork publication before disappearance cancellation")
     expect("if indexPath.row < self.tableData.count" in view, "ViewController should guard table indexes before reading results")
     expect("if let rowData = self.tableData[indexPath.row] as? NSDictionary" in view, "ViewController should optional-cast table rows")
     expect("func artworkURLForRow(indexPath: NSIndexPath) -> NSURL?" in view and
