@@ -53,6 +53,8 @@ public iTunes Search API and renders result artwork.
   `itunes.apple.com/search` without userinfo, an explicit port, or a fragment.
 - Preserve overflow-safe artwork dimension checks before assigning downloaded
   images to reusable cells.
+- Keep `make check` mutation-sensitive to permissive artwork schemes and stale
+  result-generation publication.
 - This is a legacy Apple platform sample. Xcode, Swift, and deployment target
   versions must remain aligned with the checked-in project.
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing changes to Swift sources, plists, storyboards, assets, Xcode project metadata, or security docs.

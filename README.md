@@ -80,7 +80,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, network activity indicator lifecycle, main thread UI result handling, table index guards, result array tests, async artwork loading, bounded artwork response handling, artwork URL host boundaries, artwork URL tests, optional JSON/table/image handling, and documentation.
+- `make lint`, `make test`, `make build`, and `make check` run the static baseline and mutation regressions. They verify Xcode project wiring, committed plists, storyboard and asset parsing, public endpoint guardrails, API completion cleanup, network activity indicator lifecycle, main thread UI result handling, table index guards, result array tests, async artwork loading, bounded artwork response handling, artwork URL tests, exact HTTPS artwork authority, stale result-generation rejection, optional JSON/table/image handling, and documentation.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline on hosts without the legacy Xcode toolchain, keeping the standard
   local gate commands available without claiming to replace Xcode verification.

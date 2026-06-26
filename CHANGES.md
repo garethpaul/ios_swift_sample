@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-26
+
+- Made the static baseline reject permissive HTTP artwork authorities and
+  publication that bypasses the current artwork result generation.
+- Added mutation regressions for both security-sensitive checks to `make check`.
+
 ## 2026-06-19
 
 - Rejected empty, control-bearing, over-200-character, and over-800-byte iTunes
