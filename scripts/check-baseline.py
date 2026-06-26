@@ -134,6 +134,7 @@ def check_required_files():
         "docs/plans/2026-06-14-artwork-authority-boundary.md",
         "docs/plans/2026-06-14-search-response-authority-boundary.md",
         "docs/plans/2026-06-17-001-fix-search-request-transport-plan.md",
+        "scripts/test-check-baseline.py",
         "SwiftExample.xcodeproj/project.pbxproj",
         "SwiftExample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
         "SwiftExample.xcodeproj/xcshareddata/xcschemes/SwiftExample.xcscheme",
@@ -378,7 +379,11 @@ def check_first_party_swift():
            "ViewController should resolve safe artwork URLs from the current row")
     expect("safeArtworkURLFromString(urlString)" in view, "ViewController should validate artwork URLs before loading them")
     expect("func safeArtworkURLFromString(urlString: String) -> NSURL?" in view, "ViewController should keep artwork URL validation local")
-    expect("scheme == \"https\"" in view and "host.hasSuffix(\".mzstatic.com\")" in view,
+    artwork_authority_contract = re.search(
+        r'return\s+scheme\s*==\s*"https"\s*&&\s*\(host\s*==\s*"mzstatic\.com"\s*\|\|\s*host\.hasSuffix\("\.mzstatic\.com"\)\)',
+        view,
+    )
+    expect(artwork_authority_contract is not None,
            "ViewController should restrict artwork loading to HTTPS mzstatic.com URLs")
     expect("URL.user == nil" in view and "URL.password == nil" in view and "URL.port == nil" in view,
            "ViewController should reject artwork URL userinfo and explicit ports")
@@ -452,6 +457,11 @@ def check_first_party_swift():
            "currentArtworkURL = controller.artworkURLForRow(indexPath)" in view and
            "currentArtworkURL.isEqual(imgURL)" in view,
            "ViewController should only apply async artwork to cells still representing the same current result")
+    expect(re.search(
+        r"(?m)^\s*if\s+controller\.artworkGeneration\s*==\s*generation,\s*$",
+        view,
+    ) is not None,
+           "ViewController should reject stale artwork from an earlier result generation")
     expect("@testable import SwiftExample" in tests, "SwiftExampleTests should import app code testably")
     expect("testSafeArtworkURLAcceptsHTTPSMZStaticHosts" in tests, "SwiftExampleTests should cover allowed artwork URLs")
     expect("testSafeArtworkURLRejectsUntrustedSchemesAndHosts" in tests, "SwiftExampleTests should cover rejected artwork URLs")
@@ -552,6 +562,7 @@ def check_docs():
            not any(line.startswith("ROOT :=") for line in make_lines) and
            "lint test build: check" in makefile and
            'python3 "$(ROOT)/scripts/check-baseline.py"' in makefile and
+           'python3 "$(ROOT)/scripts/test-check-baseline.py"' in makefile and
            'python3 "$(ROOT)/scripts/test-make-root-override-contract.py"' in makefile and
            "python3 scripts/check-baseline.py" not in makefile,
            "Makefile should expose location-independent lint, test, build, and check verification gates")
