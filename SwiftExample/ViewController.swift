@@ -161,6 +161,7 @@ class SearchResultsViewController: UIViewController, UITableViewDataSource, UITa
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         api.cancel()
+        artworkGeneration += 1
         cancelArtworkRequests()
         UIApplication.sharedApplication().networkActivityIndicatorVisible = false
     }

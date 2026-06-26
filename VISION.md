@@ -44,6 +44,8 @@ Priority:
   clear stale table data
 - Keep async artwork loading off the main thread and guarded against cell reuse
 - Keep artwork result identity aligned with the current API row after reloads
+- Invalidate the artwork result generation before view-disappearance
+  cancellation so queued decoding cannot publish after navigation
 - Keep bounded artwork responses limited to successful JPEG or PNG bodies of
   at most 1 MiB and one completion
 - Keep artwork pixel dimensions within 8192 pixels per axis and 16 megapixels

@@ -75,8 +75,10 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   requires successful JPEG or PNG bodies no larger than 1 MiB, checks ImageIO
   metadata before `UIImage` decoding, and rejects images over 8192 pixels per
   axis or 16 megapixels total. Navigation and result replacement cancel owned
-  artwork work, and only the current result generation may publish a matching
-  cell image on the main thread after rechecking artwork result identity.
+  artwork work. View disappearance advances the artwork generation before
+  cancellation so already-queued image decoding cannot publish afterward, and
+  only the current result generation may publish a matching cell image on the
+  main thread after rechecking artwork result identity.
 
 ## Testing and Verification
 

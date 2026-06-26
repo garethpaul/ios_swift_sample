@@ -24,6 +24,13 @@ MUTATIONS = [
         "if true,",
         "ViewController should reject stale artwork from an earlier result generation",
     ),
+    (
+        "remove disappearance generation invalidation",
+        "SwiftExample/ViewController.swift",
+        "api.cancel()\n        artworkGeneration += 1\n        cancelArtworkRequests()",
+        "api.cancel()\n        cancelArtworkRequests()",
+        "ViewController should invalidate queued artwork publication before disappearance cancellation",
+    ),
 ]
 
 

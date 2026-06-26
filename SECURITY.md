@@ -41,7 +41,7 @@ Helpful reports include:
 - API result handling should hop UI updates back to the main thread before touching table data, table views, or the network activity indicator.
 - The network activity indicator should clear when the results view disappears before API completion.
 - Result array tests should cover accepted API payloads and malformed payloads that clear stale table data.
-- Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path and artwork result identity.
+- Async artwork loading should fetch image data off the main thread and apply it only when the reused cell still represents the same index path and artwork result identity. View disappearance must advance the artwork generation before cancellation so an already-queued decode cannot publish after navigation.
 - Bounded artwork responses should require a successful JPEG or PNG response,
   stop after 1 MiB, and complete at most once before image decoding.
 - Artwork images should remain within the reviewed 8192-pixel axis and
